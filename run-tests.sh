@@ -1,0 +1,1 @@
+bin/tss --log_level=message
