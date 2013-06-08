@@ -9,19 +9,50 @@
 #define STREAM_HPP_
 
 #include "util.hpp"
+#include "mds.hpp"
+#include "bs.hpp"
 
+#include <string>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 
-class BSUncompressedFile {
+typedef char ofstreamt;
+
+using namespace std;
+
+class BSUncompressedFile : BS {
 private:
-	uint64_t minindex;
-	uint64_t maxindex;
-	boost::filesystem::ofstream of;
+	streaminfo info;
+	boost::filesystem::basic_ofstream<ofstreamt> of;
+	boost::filesystem::path stream_path;
+	void init(streaminfo &info) {
+		stream_path = boost::filesystem::path(info.loc);
+	}
 
 public:
-	bool flush(valuet* pts, int npts) {
+	BSUncompressedFile(MDS mds, streamid id) {
+		info = mds.get_info(id);
+		init(info);
+	}
+	BSUncompressedFile(streaminfo info) {
+		init(info);
+	}
+	~BSUncompressedFile() {};
 
+	bool add(valuet* pts, int npts) {
+		if (!of.is_open()) {
+			of.open(stream_path,
+					std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+		}
+		of.write(reinterpret_cast<char*>(pts), sizeof(valuet)/sizeof(ofstreamt)*npts);
+
+		return (!(of.failbit || of.badbit));
+	}
+
+	bool flush() {
+		of.flush();
+		//TODO: update end index
+		return (!(of.failbit || of.badbit));
 	}
 };
 

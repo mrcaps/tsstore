@@ -5,3 +5,4 @@ CMakeFiles
 Makefile
 bin/*.dll
 bin/*.exe
+*.tmp

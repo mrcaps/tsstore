@@ -5,10 +5,11 @@
  *      Author: mrcaps
  */
 
-#include "../src/util.hpp"
 
 #include <boost/test/unit_test.hpp>
 #include <cstdio>
+
+#include "../src/util.hpp"
 
 using namespace std;
 
