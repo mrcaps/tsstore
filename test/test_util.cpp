@@ -5,7 +5,6 @@
  *      Author: mrcaps
  */
 
-
 #include <boost/test/unit_test.hpp>
 #include <cstdio>
 

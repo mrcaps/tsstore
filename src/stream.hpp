@@ -12,7 +12,9 @@
 #include <boost/circular_buffer.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/array.hpp>
+#include <boost/shared_ptr.hpp>
 
+#include "bs_uncompressed_file.hpp"
 #include "util.hpp"
 
 /**
@@ -27,11 +29,23 @@ private:
 	boost::mutex mutex;
 
 public:
-	ValueStream(MDS mds, int _bufsize) : bufsize(_bufsize), buf() {
+	ValueStream(MDS mds, streamid id, int _bufsize) : bufsize(_bufsize), buf() {
+		valuestore = boost::shared_ptr<BS>(new BSUncompressedFile(mds, id));
+		buf.set_capacity(bufsize);
+	}
+	ValueStream(BS *bs, int _bufsize) : bufsize(_bufsize), buf() {
+		valuestore = boost::shared_ptr<BS>(bs);
 		buf.set_capacity(bufsize);
 	}
 	~ValueStream() {
-		delete buf;
+	}
+
+	void add_values(valuet *vals, int nvals) {
+		add_start();
+		for (int i = 0; i < nvals; ++i) {
+			add_value(vals[i]);
+		}
+		add_end();
 	}
 
 	/**
@@ -64,7 +78,7 @@ public:
 
 		bool success = true;
 
-		boost::circular_buffer::array_range ar = buf.array_one();
+		boost::circular_buffer<valuet>::array_range ar = buf.array_one();
 		success &= valuestore->add(ar.first, ar.second);
 		ar = buf.array_two();
 		success &= valuestore->add(ar.first, ar.second);
@@ -75,7 +89,23 @@ public:
 
 		return success;
 	}
-};
 
+	int64_t read(valuet *pts, int64_t dxmin, int64_t npts) {
+		//try to get points from the stored stream
+		int64_t ptsread = valuestore->read(pts, dxmin, npts);
+		int64_t vs_maxdx = valuestore->get_maxindex();
+
+		if (dxmin + npts > vs_maxdx) {
+			//read vals from buffer
+			int64_t addl = min((int64_t) buf.size(), (dxmin + npts) - vs_maxdx);
+
+			for (int64_t i = 0; i < addl; ++i) {
+				pts[ptsread++] = buf[i];
+			}
+		}
+
+		return ptsread;
+	}
+};
 
 #endif /* STREAM_HPP_ */

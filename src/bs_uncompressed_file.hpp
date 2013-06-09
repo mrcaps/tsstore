@@ -5,55 +5,84 @@
  *      Author: ishafer
  */
 
-#ifndef STREAM_HPP_
-#define STREAM_HPP_
-
-#include "util.hpp"
-#include "mds.hpp"
-#include "bs.hpp"
+#ifndef BS_UNCOMPRESSED_FILE_HPP_
+#define BS_UNCOMPRESSED_FILE_HPP_
 
 #include <string>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 
+#include "util.hpp"
+#include "mds.hpp"
+#include "bs.hpp"
+
 typedef char ofstreamt;
 
 using namespace std;
 
-class BSUncompressedFile : BS {
+class BSUncompressedFile : public BS {
 private:
+	DISALLOW_EVIL_CONSTRUCTORS(BSUncompressedFile);
 	streaminfo info;
-	boost::filesystem::basic_ofstream<ofstreamt> of;
+	boost::filesystem::basic_fstream<ofstreamt> fs;
 	boost::filesystem::path stream_path;
 	void init(streaminfo &info) {
 		stream_path = boost::filesystem::path(info.loc);
 	}
 
+	void check_open() {
+		if (!fs.is_open()) {
+			fs.open(stream_path, std::ios_base::in | std::ios_base::out |
+					std::ios_base::app | std::ios_base::binary);
+		}
+	}
+
 public:
+	static const int sizemult = (sizeof(valuet)/sizeof(ofstreamt));
+
 	BSUncompressedFile(MDS mds, streamid id) {
 		info = mds.get_info(id);
 		init(info);
 	}
-	BSUncompressedFile(streaminfo info) {
+	BSUncompressedFile(streaminfo _info) {
+		info = _info;
 		init(info);
 	}
 	~BSUncompressedFile() {};
 
-	bool add(valuet* pts, int npts) {
-		if (!of.is_open()) {
-			of.open(stream_path,
-					std::ios_base::out | std::ios_base::app | std::ios_base::binary);
-		}
-		of.write(reinterpret_cast<char*>(pts), sizeof(valuet)/sizeof(ofstreamt)*npts);
+	bool add(valuet *pts, int64_t npts) {
+		check_open();
+		fs.write(reinterpret_cast<char*>(pts), sizemult*npts);
+		info.maxindex += npts;
+		return (!(fs.fail()));
+	}
 
-		return (!(of.failbit || of.badbit));
+	int64_t read(valuet *pts, int64_t dxmin, int64_t npts) {
+		if (dxmin > info.maxindex) {
+			return 0;
+		}
+		dxmin = max(dxmin, info.minindex);
+		npts = min(static_cast<int64_t>(npts), (info.maxindex - info.minindex) - dxmin);
+
+		check_open();
+		fs.seekg(sizemult*dxmin);
+		fs.read(reinterpret_cast<char*>(pts), sizemult*npts);
+		if (fs.fail()) {
+			return 0;
+		} else {
+			return npts;
+		}
+	}
+
+	int64_t get_maxindex() {
+		return info.maxindex;
 	}
 
 	bool flush() {
-		of.flush();
+		fs.flush();
 		//TODO: update end index
-		return (!(of.failbit || of.badbit));
+		return (!fs.fail());
 	}
 };
 
-#endif /* STREAM_HPP_ */
+#endif /* BS_UNCOMPRESSED_FILE_HPP_ */

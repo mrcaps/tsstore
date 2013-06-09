@@ -23,6 +23,6 @@ typedef int64_t valuet;
 
 #undef TMP_PATH
 #define TMP_PATH() \
-	(boost::filesystem::unique_path("%%%-%%%%-%%%%.tmp"))
+	(boost::filesystem::unique_path("_%%%%-%%%%-%%%%.tmp"))
 
 #endif /* UTIL_HPP_ */

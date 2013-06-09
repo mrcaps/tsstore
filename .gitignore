@@ -6,3 +6,4 @@ Makefile
 bin/*.dll
 bin/*.exe
 *.tmp
+*.stackdump

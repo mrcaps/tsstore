@@ -15,8 +15,8 @@ using namespace std;
 typedef struct {
 	streamid id; //unique id
 	string loc; //stream location (e.g., path)
-	uint64_t minindex; //min value index
-	uint64_t maxindex; //max value index
+	int64_t minindex; //min value index
+	int64_t maxindex; //max value index
 } streaminfo;
 
 class MDS {
