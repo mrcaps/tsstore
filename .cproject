@@ -26,6 +26,7 @@
 								<option id="gnu.cpp.compiler.cygwin.exe.debug.option.debugging.level.1762923333" name="Debug Level" superClass="gnu.cpp.compiler.cygwin.exe.debug.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.953029149" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;C:\SDK\boost_1_53_0&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;C:\Program Files (x86)\zlib\include&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.1696544552" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin"/>
 							</tool>
@@ -43,11 +44,13 @@
 									<listOptionValue builtIn="false" value="boost_system"/>
 									<listOptionValue builtIn="false" value="boost_unit_test_framework"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="boost_filesystem"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="z"/>
 								</option>
 								<option id="gnu.cpp.link.option.paths.1446717409" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;C:\SDK\boost_1_53_0\bin.v2\libs\system\build\gcc-4.5.3\release\link-static\threading-multi&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;C:\SDK\boost_1_53_0\bin.v2\libs\test\build\gcc-4.5.3\release\link-static\threading-multi&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;C:\SDK\boost_1_53_0\bin.v2\libs\filesystem\build\gcc-4.5.3\release\link-static\threading-multi&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;C:\Program Files (x86)\zlib\lib&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.440910201" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>

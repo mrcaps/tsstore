@@ -24,7 +24,8 @@ static const encdec_pair fns[] = {
 
 BOOST_AUTO_TEST_CASE( roundtrip_test ) {
 	indext ptslen = 100;
-	boost::scoped_array<ofstreamt> buf(new ofstreamt[ptslen*BSFile::sizemult]);
+	//leave some slack (1.1 times the input length)
+	boost::scoped_array<ofstreamt> buf(new ofstreamt[(int) (ptslen*SIZEMULT*1.1)]);
 	boost::scoped_array<valuet> ptsret(new valuet[ptslen]);
 
 	for (unsigned int fndx = 0; fndx < sizeof(fns)/sizeof(encdec_pair); ++fndx) {
@@ -41,26 +42,25 @@ BOOST_AUTO_TEST_CASE( roundtrip_test ) {
 			indext retlen = dec(buf.get(), outlen, ptsret.get(), ptslen);
 
 			BOOST_CHECK_EQUAL(retlen, ptslen);
-			BOOST_CHECK( memcmp(pts.get(), ptsret.get(),
-					ptslen*BSFile::sizemult) == 0 );
+			BOOST_CHECK( memcmp(pts.get(), ptsret.get(), ptslen*SIZEMULT) == 0 );
 
-			std::cout << "orig contents were:" << std::endl;
+#ifdef DEBUG
+			std::cout << "test data input contents were:" << std::endl;
 			print_data(reinterpret_cast<valuet*>(pts.get()), 100);
 			std::cout << std::endl;
 
-			std::cout << "mid contents are:" << std::endl;
+			std::cout << "intermediate contents were:" << std::endl;
 			print_data(reinterpret_cast<valuet*>(buf.get()), outlen);
 			std::cout << std::endl;
 
-			std::cout << "contents are:" << std::endl;
+			std::cout << "roundtrip contents were:" << std::endl;
 			print_data(reinterpret_cast<valuet*>(ptsret.get()), 100);
 			std::cout << std::endl;
 
 			std::cout << std::endl << std::endl;
+#endif
 		}
 	}
-
-	BOOST_TEST_MESSAGE("MESSAGE!!!!");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

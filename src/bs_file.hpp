@@ -91,7 +91,7 @@ public:
 
 			check_open();
 			fs.seekg(SIZEMULT*(dxmin - info.minindex));
-			fs.read(reinterpret_cast<ofstreamt*>(pts), SIZEMULT);
+			fs.read(reinterpret_cast<ofstreamt*>(pts), SIZEMULT*npts);
 			if (fs.fail()) {
 				return 0;
 			} else {
@@ -184,7 +184,7 @@ public:
 	bool flush() {
 		fs.flush();
 
-		//add an index point
+		//add an index point before the flush
 		info.index.push_back(dxpair(info.maxindex, get_tail_pos()));
 
 		if (mds) {

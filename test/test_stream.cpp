@@ -89,8 +89,7 @@ BOOST_AUTO_TEST_CASE( delta_rle_test ) {
 
 	valuet* cont = vs.debug_get_contents();
 	valuet arrtest[] = {0, 2, 2, 7};
-	BOOST_CHECK( memcmp(cont, arrtest,
-			4*BSFile::sizemult) == 0 );
+	BOOST_CHECK( memcmp(cont, arrtest, 4*SIZEMULT) == 0 );
 
 	BOOST_CHECK_EQUAL(-1, vs.index(-4));
 	BOOST_CHECK_EQUAL(3, vs.index(6));
@@ -100,8 +99,7 @@ BOOST_AUTO_TEST_CASE( delta_rle_test ) {
 	boost::shared_array<valuet> ptsret = boost::shared_array<valuet>(new valuet[100]);
 
 	vs.read(ptsret.get(), 0, 10);
-	BOOST_CHECK( memcmp(pts.get(), ptsret.get(),
-			10*BSFile::sizemult) == 0);
+	BOOST_CHECK( memcmp(pts.get(), ptsret.get(), 10*SIZEMULT) == 0);
 
 	//stash some different data in pts
 	for (int i = 0; i < 10; ++i) {
@@ -111,12 +109,10 @@ BOOST_AUTO_TEST_CASE( delta_rle_test ) {
 
 	cont = vs.debug_get_contents();
 	valuet arrtest2[] = {0, 2, 2, 8, 3, 3, 7};
-	BOOST_CHECK( memcmp(cont, arrtest2,
-			7*BSFile::sizemult) == 0 );
+	BOOST_CHECK( memcmp(cont, arrtest2, 7*SIZEMULT) == 0 );
 
 	vs.read(ptsret.get(), 0, 20);
-	BOOST_CHECK( memcmp(pts.get(), ptsret.get() + 10,
-			10*BSFile::sizemult) == 0);
+	BOOST_CHECK( memcmp(pts.get(), ptsret.get() + 10, 10*SIZEMULT) == 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
