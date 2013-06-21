@@ -10,8 +10,6 @@
 
 #include "../src/util.hpp"
 
-using namespace std;
-
 BOOST_AUTO_TEST_SUITE( util_test_suite )
 
 BOOST_AUTO_TEST_CASE( types_test ) {

@@ -9,12 +9,11 @@
 
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
+#include <boost/shared_array.hpp>
 
 #include <iostream>
 
-using namespace std;
-
-valuet *get_test_data(int npoints, testdatatype type) {
+boost::shared_array<valuet> get_test_data(int npoints, testdatatype type) {
 	boost::random::mt19937 rndgen;
 	boost::random::uniform_int_distribution<> dist(1, 100);
 	int i;
@@ -36,15 +35,20 @@ valuet *get_test_data(int npoints, testdatatype type) {
 			pts[i] = i % 100;
 		}
 		break;
+	case INCREASING_FIXED2:
+		for (i = 0; i < npoints; ++i) {
+			pts[i] = i * 2;
+		}
+		break;
 	}
 
-	return pts;
+	return boost::shared_array<valuet>(pts);
 }
 
-void print_data(valuet* dta, int npoints) {
-	cout << "[ ";
+void print_data(valuet *dta, int npoints) {
+	std::cout << "[ ";
 	for (int i = 0; i < npoints; ++i) {
-		cout << dta[i] << " ";
+		std::cout << dta[i] << " ";
 	}
-	cout << "]";
+	std::cout << "]";
 }

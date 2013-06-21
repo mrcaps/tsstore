@@ -8,15 +8,24 @@
 #ifndef DATA_HPP_
 #define DATA_HPP_
 
+#include <boost/shared_array.hpp>
+
 #include "../src/util.hpp"
 
 enum testdatatype {
 	UNIFORM,
 	RANDOM,
-	SAWTOOTH
+	SAWTOOTH,
+	INCREASING_FIXED2 //increasing by 2
+};
+const testdatatype testdatatype_values[] = {
+	UNIFORM,
+	RANDOM,
+	SAWTOOTH,
+	INCREASING_FIXED2
 };
 
-valuet *get_test_data(int npoints, testdatatype type);
-void print_data(valuet* dta, int npoints);
+boost::shared_array<valuet> get_test_data(int npoints, testdatatype type);
+void print_data(valuet *dta, int npoints);
 
 #endif /* DATA_HPP_ */

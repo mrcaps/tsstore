@@ -10,6 +10,8 @@
 
 #include "util.hpp"
 
+const indext SAME_DEC_PTS = -1;
+
 /**
  * A block store
  */
@@ -18,9 +20,10 @@ public:
 	/**
 	 * Add the given points into the block store
 	 * @param [in] pts data to add
+	 * @param [in] ndecpts number of decoded points
 	 * @return true on success
 	 */
-	virtual bool add(valuet* pts, int64_t npts) = 0;
+	virtual bool add(valuet *pts, indext npts, indext ndecpts=SAME_DEC_PTS) = 0;
 	/**
 	 * Read points from the block store
 	 * @param [out] pts data to fill
@@ -28,7 +31,13 @@ public:
 	 * @param npts how many points to read
 	 * @return true on success
 	 */
-	virtual int64_t read(valuet* pts, int64_t dxmin, int64_t npts) = 0;
+	virtual indext read(valuet *pts, indext dxmin, indext npts) = 0;
+	/**
+	 * Find the (first) position of the given value
+	 * @param val -(insertion_point) or index
+	 * @return the index
+	 */
+	virtual indext index(valuet val) = 0;
 	/**
 	 * Get the max index stored in this block store
 	 */

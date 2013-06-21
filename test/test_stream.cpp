@@ -6,44 +6,117 @@
  */
 
 #include <cstdio>
+#include <cstring>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/shared_array.hpp>
 
 #include "../src/bs.hpp"
-#include "../src/bs_uncompressed_file.hpp"
+#include "../src/bs_file.hpp"
 #include "../src/stream.hpp"
 #include "data.hpp"
 
-using namespace std;
+streaminfo get_temp_bs(bool sorted, encodert encoder) {
+	static streamid id = 1;
+	streaminfo info;
+	info.id = ++id;
+	info.loc = TMP_PATH().generic_string();
+	info.minindex = 0;
+	info.maxindex = 0;
+	info.index = std::vector<dxpair>();
+	info.sorted = sorted;
+	info.encoder = encoder;
+	return info;
+}
 
 BOOST_AUTO_TEST_SUITE( stream_test_suite )
 
 BOOST_AUTO_TEST_CASE( basic_test ) {
-	streaminfo info;
-	info.id = 1;
-	info.loc = TMP_PATH().generic_string();
-	info.minindex = 0;
-	info.maxindex = 0;
+	streaminfo info = get_temp_bs(false, NONE);
 
-	ValueStream vs(new BSUncompressedFile(info), 100);
+	ValueStream vs(info, 100);
 
 	int npts = 1000;
-	valuet *pts = get_test_data(npts, RANDOM);
-	vs.add_values(pts, 50);
+	boost::shared_array<valuet> pts = get_test_data(npts, RANDOM);
+	vs.add_values(pts.get(), 50);
 
-	valuet *ptsret = new valuet[npts];
-	BOOST_CHECK_EQUAL(50, vs.read(ptsret, 0, 50));
-	BOOST_CHECK( memcmp(pts, ptsret, 50*BSUncompressedFile::sizemult) == 0 );
+	boost::shared_array<valuet> ptsret = boost::shared_array<valuet>(new valuet[npts]);
+	BOOST_CHECK_EQUAL(50, vs.read(ptsret.get(), 0, 50));
+	BOOST_CHECK( memcmp(pts.get(), ptsret.get(),
+			50*SIZEMULT) == 0 );
 
 	vs.flush();
 
-	BOOST_CHECK_EQUAL(50, vs.read(ptsret, 0, 50));
-	BOOST_CHECK( memcmp(pts, ptsret, 50*BSUncompressedFile::sizemult) == 0 );
+	BOOST_CHECK_EQUAL(50, vs.read(ptsret.get(), 0, 50));
+	BOOST_CHECK( memcmp(pts.get(), ptsret.get(),
+			50*SIZEMULT) == 0 );
 
-	vs.add_values(pts+50, 100);
+	vs.add_values(pts.get()+50, 100);
 
-	BOOST_CHECK_EQUAL(150, vs.read(ptsret, 0, 150));
-	BOOST_CHECK( memcmp(pts, ptsret, 150*BSUncompressedFile::sizemult) == 0 );
+	BOOST_CHECK_EQUAL(150, vs.read(ptsret.get(), 0, 150));
+	BOOST_CHECK( memcmp(pts.get(), ptsret.get(),
+			150*SIZEMULT) == 0 );
+}
+
+BOOST_AUTO_TEST_CASE( index_test ) {
+	streaminfo info = get_temp_bs(true, NONE);
+
+	ValueStream vs(info, 100);
+
+	boost::shared_array<valuet> pts = get_test_data(50, INCREASING_FIXED2);
+	vs.add_values(pts.get(), 50);
+
+	BOOST_CHECK_EQUAL(25, vs.index(50));
+	BOOST_CHECK_EQUAL(-27, vs.index(51));
+	BOOST_CHECK_EQUAL(-51, vs.index(1000));
+	BOOST_CHECK_EQUAL(-1, vs.index(-100));
+
+	vs.flush();
+
+	BOOST_CHECK_EQUAL(25, vs.index(50));
+	BOOST_CHECK_EQUAL(-27, vs.index(51));
+	BOOST_CHECK_EQUAL(-51, vs.index(1000));
+	BOOST_CHECK_EQUAL(-1, vs.index(-100));
+}
+
+BOOST_AUTO_TEST_CASE( delta_rle_test ) {
+	streaminfo info = get_temp_bs(true, DELTARLE);
+
+	ValueStream vs(info, 100);
+
+	boost::shared_array<valuet> pts = get_test_data(10, INCREASING_FIXED2);
+	vs.add_values(pts.get(), 10);
+
+	valuet* cont = vs.debug_get_contents();
+	valuet arrtest[] = {0, 2, 2, 7};
+	BOOST_CHECK( memcmp(cont, arrtest,
+			4*BSFile::sizemult) == 0 );
+
+	BOOST_CHECK_EQUAL(-1, vs.index(-4));
+	BOOST_CHECK_EQUAL(3, vs.index(6));
+	BOOST_CHECK_EQUAL(-4, vs.index(7));
+	BOOST_CHECK_EQUAL(-10, vs.index(30));
+
+	boost::shared_array<valuet> ptsret = boost::shared_array<valuet>(new valuet[100]);
+
+	vs.read(ptsret.get(), 0, 10);
+	BOOST_CHECK( memcmp(pts.get(), ptsret.get(),
+			10*BSFile::sizemult) == 0);
+
+	//stash some different data in pts
+	for (int i = 0; i < 10; ++i) {
+		pts.get()[i] = i * 3 + 20;
+	}
+	vs.add_values(pts.get(), 10);
+
+	cont = vs.debug_get_contents();
+	valuet arrtest2[] = {0, 2, 2, 8, 3, 3, 7};
+	BOOST_CHECK( memcmp(cont, arrtest2,
+			7*BSFile::sizemult) == 0 );
+
+	vs.read(ptsret.get(), 0, 20);
+	BOOST_CHECK( memcmp(pts.get(), ptsret.get() + 10,
+			10*BSFile::sizemult) == 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
