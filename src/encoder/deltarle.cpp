@@ -13,7 +13,7 @@
  * Encode a block with delta-RLE (currently with fixed-width encoding)
  * @return the size written to the output
  */
-indext delta_rle_encode(valuet *in, indext inlen, char *out) {
+filepost delta_rle_encode(valuet *in, indext inlen, char *out) {
 	valuet *outvt = reinterpret_cast<valuet*>(out);
 
 	if (inlen == 0) {
@@ -53,14 +53,14 @@ indext delta_rle_encode(valuet *in, indext inlen, char *out) {
 		}
 	}
 
-	return pw;
+	return pw*SIZEMULT;
 }
 
 /**
  * Decode a block with delta-RLE
  * @return the number of values decoded
  */
-indext delta_rle_decode(char *in, indext inlen, valuet *out, indext outlen) {
+indext delta_rle_decode(char *in, filepost inlen, valuet *out, indext outlen) {
 	valuet *invt = reinterpret_cast<valuet*>(in);
 
 	if (inlen == 0) {
@@ -69,7 +69,7 @@ indext delta_rle_decode(char *in, indext inlen, valuet *out, indext outlen) {
 	indext ptsread = 0;
 	valuet cur = invt[0];
 	out[ptsread++] = cur;
-	for (indext i = 1; i < inlen; ++i) {
+	for (indext i = 1; i < inlen/SIZEMULT; ++i) {
 		cur += invt[i];
 		out[ptsread++] = cur;
 		if (i > 1 && invt[i] == invt[i-1]) {

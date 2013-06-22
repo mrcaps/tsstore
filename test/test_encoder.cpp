@@ -19,11 +19,13 @@
 BOOST_AUTO_TEST_SUITE( encoder_test_suite )
 
 static const encdec_pair fns[] = {
-	encdec_pair(delta_rle_encode, delta_rle_decode)
+	encdec_pair(delta_rle_encode, delta_rle_decode),
+	encdec_pair(zlib_encode, zlib_decode)
 };
 
+
 BOOST_AUTO_TEST_CASE( roundtrip_test ) {
-	indext ptslen = 100;
+	indext ptslen = 1000;
 	//leave some slack (1.1 times the input length)
 	boost::scoped_array<ofstreamt> buf(new ofstreamt[(int) (ptslen*SIZEMULT*1.1)]);
 	boost::scoped_array<valuet> ptsret(new valuet[ptslen]);
@@ -36,8 +38,7 @@ BOOST_AUTO_TEST_CASE( roundtrip_test ) {
 				dt <= sizeof(testdatatype_values)/sizeof(testdatatype); dt++) {
 			boost::shared_array<valuet> pts = get_test_data(ptslen, testdatatype_values[dt]);
 			//out buffer of same size as test data
-			indext outlen = enc(pts.get(), ptslen, buf.get());
-
+			filepost outlen = enc(pts.get(), ptslen, buf.get());
 
 			indext retlen = dec(buf.get(), outlen, ptsret.get(), ptslen);
 
