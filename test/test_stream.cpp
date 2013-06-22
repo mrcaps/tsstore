@@ -41,19 +41,19 @@ BOOST_AUTO_TEST_CASE( basic_test ) {
 	vs.add_values(pts.get(), 50);
 
 	boost::shared_array<valuet> ptsret = boost::shared_array<valuet>(new valuet[npts]);
-	BOOST_CHECK_EQUAL(50, vs.read(ptsret.get(), 0, 50));
+	BOOST_CHECK_EQUAL(50, vs.read(ptsret.get(), dxrange(0, 50)).len);
 	BOOST_CHECK( memcmp(pts.get(), ptsret.get(),
 			50*SIZEMULT) == 0 );
 
 	vs.flush();
 
-	BOOST_CHECK_EQUAL(50, vs.read(ptsret.get(), 0, 50));
+	BOOST_CHECK_EQUAL(50, vs.read(ptsret.get(), dxrange(0, 50)).len);
 	BOOST_CHECK( memcmp(pts.get(), ptsret.get(),
 			50*SIZEMULT) == 0 );
 
 	vs.add_values(pts.get()+50, 100);
 
-	BOOST_CHECK_EQUAL(150, vs.read(ptsret.get(), 0, 150));
+	BOOST_CHECK_EQUAL(150, vs.read(ptsret.get(), dxrange(0, 150)).len);
 	BOOST_CHECK( memcmp(pts.get(), ptsret.get(),
 			150*SIZEMULT) == 0 );
 }
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE( delta_rle_test ) {
 
 	boost::shared_array<valuet> ptsret = boost::shared_array<valuet>(new valuet[100]);
 
-	vs.read(ptsret.get(), 0, 10);
+	vs.read(ptsret.get(), dxrange(0, 10));
 	BOOST_CHECK( memcmp(pts.get(), ptsret.get(), 10*SIZEMULT) == 0);
 
 	//stash some different data in pts
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE( delta_rle_test ) {
 	valuet arrtest2[] = {0, 2, 2, 8, 3, 3, 7};
 	BOOST_CHECK( memcmp(cont, arrtest2, 7*SIZEMULT) == 0 );
 
-	vs.read(ptsret.get(), 0, 20);
+	vs.read(ptsret.get(), dxrange(0, 20));
 	BOOST_CHECK( memcmp(pts.get(), ptsret.get() + 10, 10*SIZEMULT) == 0);
 }
 

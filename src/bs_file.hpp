@@ -23,7 +23,7 @@ class BSFile : public BS {
 private:
 	DISALLOW_EVIL_CONSTRUCTORS(BSFile);
 	streaminfo info;
-	boost::filesystem::basic_fstream<ofstreamt> fs;
+	boost::filesystem::basic_fstream<streamt> fs;
 	boost::filesystem::path stream_path;
 	boost::shared_ptr<MDS> mds;
 
@@ -37,6 +37,7 @@ private:
 					std::ios_base::app | std::ios_base::binary);
 		}
 	}
+
 
 public:
 	BSFile(MDS mds, streamid id) {
@@ -63,45 +64,72 @@ public:
 
 		if (info.encoder == NONE) {
 			//direct write
-			fs.write(reinterpret_cast<ofstreamt*>(pts), SIZEMULT*npts);
+			fs.write(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
 		} else {
 			if (info.encoder == DELTARLE) {
 				//TODO: variable-width encode?
-				fs.write(reinterpret_cast<char*>(pts), SIZEMULT*npts);
+				fs.write(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
+			} else if (info.encoder == ZLIB) {
+				//TODO: use a chunk size that isn't the size of the flush?
+				// (note that deflate() needs an intermediate buffer anyway,
+				//	so this shouldn't be too horrible)
+				streamt *charr = new streamt[(int) (SIZEMULT*npts*1.1)+12];
+				filepost write = zlib_encode(pts, npts, charr);
+				fs.write(charr, write);
+				delete[] charr;
 			}
 		}
 
+		fs.flush();
+
+		//add an index point after the flush
 		info.maxindex += ndecpts;
-		return (!(fs.fail()));
+		info.index.push_back(dxpair(info.maxindex, get_tail_pos()));
+
+		if (mds) {
+			//update metadata on flush
+			mds->update_maxindex(info.id, info.maxindex);
+			mds->update_index(info.id, info.index);
+		} else {
+			INFO("No MDS to update in stream id=" << info.id)
+		}
+
+		return (!fs.fail());
 	}
 
 	filepost get_tail_pos() {
 		return fs.tellp();
 	}
 
-	indext read(valuet *pts, indext dxmin, indext npts) {
+	read_result read(dxrange req) {
+		read_result rr;
+		//TODO: fill me in!!!!
+		return rr;
+	}
+
+	dxrange read_exact(valuet *pts, dxrange req) {
 		//direct seek if we have no encoder
 		if (info.encoder == NONE) {
-			if (dxmin > info.maxindex) {
-				return 0;
+			if (req.start > info.maxindex) {
+				return dxrange(req.start, 0);
 			}
-			dxmin = std::max(dxmin, info.minindex);
-			npts = std::min(static_cast<indext>(npts),
+			indext dxmin = std::max(req.start, info.minindex);
+			indext npts = std::min(static_cast<indext>(req.len),
 					(info.maxindex - info.minindex) - dxmin);
 
 			check_open();
 			fs.seekg(SIZEMULT*(dxmin - info.minindex));
-			fs.read(reinterpret_cast<ofstreamt*>(pts), SIZEMULT*npts);
+			fs.read(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
 			if (fs.fail()) {
-				return 0;
+				return dxrange(req.start, 0);
 			} else {
-				return npts;
+				return dxrange(dxmin, npts);
 			}
 		} else {
 			//find the index point
 			dxpair_list::iterator it = std::lower_bound(
 					info.index.begin(), info.index.end(),
-					dxpair(dxmin, 0), compare_dxpair_list);
+					dxpair(req.start, 0), compare_dxpair_list);
 			indext npts_read = 0; //number of total we read
 
 			while (it != info.index.end()) {
@@ -119,13 +147,15 @@ public:
 
 				//read
 				boost::scoped_array<valuet> readarr(new valuet[blocksize/sizeof(valuet)]);
-				ofstreamt* backing_ptr = reinterpret_cast<ofstreamt*>(readarr.get());
+				streamt* backing_ptr = reinterpret_cast<streamt*>(readarr.get());
 				fs.read(backing_ptr, blocksize);
 				//decode the chunk
 				indext ndec = 0;
 				if (info.encoder == DELTARLE) {
 					//TODO: other encoders
 					ndec = delta_rle_decode(backing_ptr, blocksize, pts, maxinblock);
+				} else if (info.encoder == ZLIB) {
+					ndec = zlib_decode(backing_ptr, blocksize, pts, maxinblock);
 				}
 				npts_read += ndec;
 				pts += ndec;
@@ -133,7 +163,7 @@ public:
 				++it;
 			}
 
-			return npts_read;
+			return dxrange(req.start, npts_read);
 		}
 	}
 
@@ -147,7 +177,7 @@ public:
 			while (lo <= hi) {
 				mid = (lo + hi) / 2;
 				fs.seekg(SIZEMULT*(mid - info.minindex));
-				fs.read(reinterpret_cast<ofstreamt*>(&cur), SIZEMULT*1);
+				fs.read(reinterpret_cast<streamt*>(&cur), SIZEMULT*1);
 				if (cur > pt) {
 					hi = mid - 1;
 				} else if (cur < pt) {
@@ -164,7 +194,7 @@ public:
 			valuet buf[BUFSIZE];
 			for (indext dx = info.minindex; dx < info.maxindex; dx += BUFSIZE) {
 				int npts = std::min(BUFSIZE, info.maxindex - dx);
-				read(buf, dx, npts);
+				read_exact(buf, dxrange(dx, npts));
 				//scan the buffer
 				for (int i = 0; i < npts; ++i) {
 					if (buf[i] == pt) {
@@ -179,24 +209,6 @@ public:
 
 	indext get_maxindex() {
 		return info.maxindex;
-	}
-
-	bool flush() {
-		fs.flush();
-
-		//add an index point before the flush
-		info.index.push_back(dxpair(info.maxindex, get_tail_pos()));
-
-		if (mds) {
-			//update metadata on flush
-			mds->update_maxindex(info.id, info.maxindex);
-			mds->update_index(info.id, info.index);
-		} else {
-			INFO("No MDS to update in stream id=" << info.id)
-		}
-
-		//TODO: update end index
-		return (!fs.fail());
 	}
 };
 

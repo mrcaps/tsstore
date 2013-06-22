@@ -10,6 +10,17 @@
 
 #include "../util.hpp"
 
+enum encodert {
+	NONE,
+	DELTARLE,
+	ZLIB
+};
+const encodert encodert_values[] = {
+	NONE,
+	DELTARLE,
+	ZLIB
+};
+
 typedef filepost (*encoder_fn)(valuet*, indext, char*);
 typedef indext (*decoder_fn)(char*, indext, valuet*, indext);
 typedef std::pair<encoder_fn, decoder_fn> encdec_pair;

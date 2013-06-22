@@ -10,10 +10,7 @@
 
 #include <string>
 
-enum encodert {
-	NONE,
-	DELTARLE
-};
+#include "encoder/encoder.hpp"
 
 //index
 typedef std::pair<indext, filepost> dxpair;

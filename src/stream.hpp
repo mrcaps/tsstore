@@ -217,24 +217,30 @@ public:
 
 		bool success = true;
 
+		//if we could break it up into two writes...
+		/*
 		boost::circular_buffer<valuet>::array_range ar = buf.array_one();
 		success &= valuestore->add(ar.first, ar.second, 0);
 		ar = buf.array_two();
 		success &= valuestore->add(ar.first, ar.second, values_in_buffer);
+		*/
+
+		//instead, write in one chunk.
+		valuestore->add(buf.linearize(), buf.size(), values_in_buffer);
 
 		buf.clear();
 		values_in_buffer = 0;
 
 		lock.unlock();
 
-		success &= valuestore->flush();
-
 		return success;
 	}
 
-	indext read(valuet *pts, int64_t dxmin, int64_t npts) {
+	dxrange read(valuet *pts, dxrange req) {
+		indext dxmin = req.start;
+		indext npts = req.len;
 		//try to get points from the stored stream
-		indext ptsread = valuestore->read(pts, dxmin, npts);
+		dxrange vsres = valuestore->read_exact(pts, dxrange(dxmin, npts));
 		indext vs_maxdx = valuestore->get_maxindex();
 
 		if (dxmin + npts > vs_maxdx) {
@@ -244,7 +250,7 @@ public:
 
 			if (info.encoder == NONE) {
 				for (indext i = start; i < end; ++i) {
-					pts[ptsread++] = buf[i];
+					pts[vsres.len++] = buf[i];
 				}
 			} else if (info.encoder == DELTARLE) {
 				if (end > 0) {
@@ -252,19 +258,19 @@ public:
 					//i is position in the buffer, decpos is decoded pos
 					indext decpos = 0;
 					if (decpos >= start) {
-						pts[ptsread++] = cur;
+						pts[vsres.len++] = cur;
 					}
 					for (indext i = 1; i < buf.size(); ++i) {
 						cur += buf[i]; ++decpos;
 						if (decpos >= start) {
-							pts[ptsread++] = cur;
+							pts[vsres.len++] = cur;
 						}
 						if (i > 1 && buf[i] == buf[i-1]) {
 							++i; //advance to the run count
 							for (indext rdx = 0; rdx < buf[i]; ++rdx) {
 								cur += buf[i-1]; ++decpos;
 								if (decpos >= start) {
-									pts[ptsread++] = cur;
+									pts[vsres.len++] = cur;
 								}
 							}
 						}
@@ -273,7 +279,7 @@ public:
 			} //ENCODER
 		}
 
-		return ptsread;
+		return vsres;
 	}
 };
 

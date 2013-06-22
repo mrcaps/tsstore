@@ -27,7 +27,7 @@ static const encdec_pair fns[] = {
 BOOST_AUTO_TEST_CASE( roundtrip_test ) {
 	indext ptslen = 1000;
 	//leave some slack (1.1 times the input length)
-	boost::scoped_array<ofstreamt> buf(new ofstreamt[(int) (ptslen*SIZEMULT*1.1)]);
+	boost::scoped_array<streamt> buf(new streamt[(int) (ptslen*SIZEMULT*1.1)]);
 	boost::scoped_array<valuet> ptsret(new valuet[ptslen]);
 
 	for (unsigned int fndx = 0; fndx < sizeof(fns)/sizeof(encdec_pair); ++fndx) {
@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE( roundtrip_test ) {
 		decoder_fn dec = fns[fndx].second;
 
 		for (unsigned int dt = 0;
-				dt <= sizeof(testdatatype_values)/sizeof(testdatatype); dt++) {
+				dt <= sizeof(testdatatype_values)/sizeof(testdatatype); ++dt) {
 			boost::shared_array<valuet> pts = get_test_data(ptslen, testdatatype_values[dt]);
 			//out buffer of same size as test data
 			filepost outlen = enc(pts.get(), ptslen, buf.get());

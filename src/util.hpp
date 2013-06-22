@@ -23,8 +23,15 @@ typedef int64_t indext;
 typedef int64_t filepost;
 const indext NO_INDEX = -1;
 
-typedef char ofstreamt;
-const int SIZEMULT = (sizeof(valuet)/sizeof(ofstreamt));
+typedef char streamt;
+const int SIZEMULT = (sizeof(valuet)/sizeof(streamt));
+
+struct dxrange {
+	indext start;
+	indext len;
+
+	dxrange(indext _start, indext _len) : start(_start), len(_len) {}
+};
 
 #undef TMP_PATH
 #define TMP_PATH() \
@@ -47,7 +54,6 @@ const int SIZEMULT = (sizeof(valuet)/sizeof(ofstreamt));
 #else
 #  define INFO(x)
 #endif
-
 
 #define ERROR(x) std::cerr << x << std::endl;
 
