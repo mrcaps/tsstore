@@ -23,7 +23,6 @@ static const encdec_pair fns[] = {
 	encdec_pair(zlib_encode, zlib_decode)
 };
 
-
 BOOST_AUTO_TEST_CASE( roundtrip_test ) {
 	indext ptslen = 1000;
 	//leave some slack (1.1 times the input length)
@@ -39,14 +38,13 @@ BOOST_AUTO_TEST_CASE( roundtrip_test ) {
 
 			boost::shared_array<valuet> pts(get_test_data(ptslen, testdatatype_values[dt]));
 			//out buffer of same size as test data
-			/*
 			filepost outlen = enc(pts.get(), ptslen, buf.get());
 
 			indext retlen = dec(buf.get(), outlen, ptsret.get(), ptslen);
 
 			BOOST_CHECK_EQUAL(retlen, ptslen);
 			BOOST_CHECK( memcmp(pts.get(), ptsret.get(), ptslen*SIZEMULT) == 0 );
-			*/
+
 #ifdef DEBUG_BUILD
 			std::cout << "test data input contents were:" << std::endl;
 			print_data(reinterpret_cast<valuet*>(pts.get()), 100);
