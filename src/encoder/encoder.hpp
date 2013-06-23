@@ -21,6 +21,10 @@ const encodert encodert_values[] = {
 	ZLIB
 };
 
+inline filepost PAD_SIZE(filepost size) {
+	return size * 1.1 + 12;
+}
+
 typedef filepost (*encoder_fn)(valuet*, indext, char*);
 typedef indext (*decoder_fn)(char*, indext, valuet*, indext);
 typedef std::pair<encoder_fn, decoder_fn> encdec_pair;

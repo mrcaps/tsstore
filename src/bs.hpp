@@ -15,10 +15,10 @@
 
 const indext SAME_DEC_PTS = -1;
 
-//TODO: return value blocks
 typedef struct {
 	dxrange range;
 	boost::shared_array<streamt> data;
+	filepost data_len;
 	encodert encoder;
 } value_block;
 

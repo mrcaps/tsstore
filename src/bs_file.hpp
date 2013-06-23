@@ -103,8 +103,79 @@ public:
 
 	read_result read(dxrange req) {
 		read_result rr;
-		//TODO: fill me in!!!!
+		rr.blocks = std::vector<value_block>();
+		if (info.encoder == NONE) {
+			value_block vb;
+			vb.data = boost::shared_array<streamt>(new streamt[req.len*SIZEMULT]);
+			vb.encoder = NONE;
+			vb.range = read_exact(reinterpret_cast<valuet*>(vb.data.get()), req);
+			vb.data_len = vb.range.len;
+			rr.blocks.push_back(vb);
+		} else {
+			//find the index point
+			dxpair_list::iterator it = std::lower_bound(
+					info.index.begin(), info.index.end(),
+					dxpair(req.start, 0), compare_dxpair_list);
+
+			while (it != info.index.end()) {
+				//don't go past the end of the stream
+				if (it->first > req.start + req.len) {
+					break;
+				}
+
+				//number of points in block
+				indext pts_in_block = info.maxindex - it->first;
+				//size of data in block
+				filepost blocksize = get_tail_pos() - it->second;
+				if (it + 1 != info.index.end()) {
+					pts_in_block = (it+1)->first - it->first;
+					blocksize = (it+1)->second - it->second;
+				}
+
+				//read in a block
+				value_block vb;
+				vb.data = boost::shared_array<streamt>(new streamt[blocksize]);
+				fs.seekg(it->second);
+				fs.read(vb.data.get(), blocksize);
+				vb.data_len = blocksize;
+				vb.encoder = info.encoder;
+				vb.range = dxrange(it->first, pts_in_block);
+				rr.blocks.push_back(vb);
+
+				++it;
+			}
+		}
 		return rr;
+	}
+
+	/**
+	 * @param vb value block to decode
+	 * @param buf where to decode to
+	 * @return number of decoded points
+	 */
+	indext decode_block(value_block &vb, valuet *buf) {
+		indext ndec;
+		switch (vb.encoder) {
+		case DELTARLE:
+			ndec = delta_rle_decode(
+					vb.data.get(),
+					vb.data_len,
+					buf,
+					vb.range.len);
+			break;
+		case ZLIB:
+			ndec = zlib_decode(
+					vb.data.get(),
+					vb.data_len,
+					buf,
+					vb.range.len);
+			break;
+		default:
+			ERROR("Unknown encoder" << vb.encoder);
+			ndec = 0;
+		}
+
+		return ndec;
 	}
 
 	dxrange read_exact(valuet *pts, dxrange req) {
@@ -126,44 +197,42 @@ public:
 				return dxrange(dxmin, npts);
 			}
 		} else {
-			//find the index point
-			dxpair_list::iterator it = std::lower_bound(
-					info.index.begin(), info.index.end(),
-					dxpair(req.start, 0), compare_dxpair_list);
-			indext npts_read = 0; //number of total we read
+			read_result rr = read(req);
+			indext bottom = req.start;
+			//copy over relevant points
 
-			while (it != info.index.end()) {
-				//number of points in block
-				indext maxinblock = info.maxindex - it->first;
-				//size of data in block
-				filepost blocksize = get_tail_pos() - it->second;
-				if (it + 1 != info.index.end()) {
-					maxinblock = (it+1)->first - it->first;
-					blocksize = (it+1)->second - it->second;
+			valuet *pts_head = pts;
+			indext mindx = std::numeric_limits<indext>::max()-1;
+
+			for (std::vector<value_block>::iterator it = rr.blocks.begin();
+					it != rr.blocks.end(); ++it) {
+				mindx = std::min(mindx, it->range.start);
+
+				indext before_first = std::max(static_cast<indext>(0),
+						bottom - it->range.start);
+				indext after_last = std::max(static_cast<indext>(0),
+						req.start + req.len - (it->range.start + it->range.len));
+				indext declen = it->range.len - before_first - after_last;
+
+				if (before_first > 0 || after_last > 0) {
+					//need to decompress a partial block
+					boost::scoped_array<valuet> scratch(
+							new valuet[PAD_SIZE(it->range.len*SIZEMULT)]);
+					indext ndec = decode_block(*it, scratch.get());
+					BOOST_ASSERT(ndec == it->data_len);
+					std::copy(scratch.get() + before_first,
+							scratch.get() + before_first + declen,
+							pts_head);
+					pts_head += declen*SIZEMULT;
+				} else {
+					//decompress a whole block directly to the out ptr
+					indext ndec = decode_block(*it, pts_head);
+					BOOST_ASSERT(ndec == it->data_len);
+					pts_head += ndec*SIZEMULT;
 				}
-
-				fs.seekg(it->second);
-				//read up to (npts - npts_read) points
-
-				//read
-				boost::scoped_array<valuet> readarr(new valuet[blocksize/sizeof(valuet)]);
-				streamt* backing_ptr = reinterpret_cast<streamt*>(readarr.get());
-				fs.read(backing_ptr, blocksize);
-				//decode the chunk
-				indext ndec = 0;
-				if (info.encoder == DELTARLE) {
-					//TODO: other encoders
-					ndec = delta_rle_decode(backing_ptr, blocksize, pts, maxinblock);
-				} else if (info.encoder == ZLIB) {
-					ndec = zlib_decode(backing_ptr, blocksize, pts, maxinblock);
-				}
-				npts_read += ndec;
-				pts += ndec;
-
-				++it;
 			}
 
-			return dxrange(req.start, npts_read);
+			return dxrange(mindx, (pts_head-pts)/SIZEMULT);
 		}
 	}
 

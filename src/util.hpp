@@ -30,6 +30,7 @@ struct dxrange {
 	indext start;
 	indext len;
 
+	dxrange() : start(0), len(0) {}
 	dxrange(indext _start, indext _len) : start(_start), len(_len) {}
 };
 

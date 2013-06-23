@@ -16,13 +16,15 @@ enum testdatatype {
 	UNIFORM,
 	RANDOM,
 	SAWTOOTH,
-	INCREASING_FIXED2 //increasing by 2
+	INCREASING_FIXED2, //increasing by 2
+	MIXED
 };
 const testdatatype testdatatype_values[] = {
 	UNIFORM,
 	RANDOM,
 	SAWTOOTH,
-	INCREASING_FIXED2
+	INCREASING_FIXED2,
+	MIXED
 };
 
 boost::shared_array<valuet> get_test_data(int npoints, testdatatype type);

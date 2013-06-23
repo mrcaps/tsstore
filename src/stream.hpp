@@ -90,9 +90,7 @@ public:
 	void add_value(valuet val) {
 		++values_in_buffer;
 
-		if (info.encoder == NONE) {
-			buf.push_back(val);
-		} else if (info.encoder == DELTARLE) {
+		if (info.encoder == DELTARLE) {
 			DEBUG("add val=" << val);
 			indext size = buf.size();
 			valuet delta = val - lastvalue;
@@ -126,6 +124,9 @@ public:
 					buf.push_back(delta);
 				}
 			}
+		} else {
+			//other encoders - just store unencoded for now.
+			buf.push_back(val);
 		}
 	}
 
@@ -145,23 +146,7 @@ public:
 		indext lb;
 
 		if (info.sorted) {
-			if (info.encoder == NONE) {
-				if (buf.empty() || val < buf.front()) {
-					//off the bottom
-					return valuestore->index(val);
-				}
-				else if (val > buf.back()) {
-					//off the top
-					return -(valuestore->get_maxindex() + buf.size() + 1);
-				} else {
-					lb = boost::range::lower_bound(buf, val) - buf.begin();
-					if (buf[lb] == val) {
-						return lb + valuestore->get_maxindex();
-					} else {
-						return -(lb + valuestore->get_maxindex() + 1);
-					}
-				}
-			} else if (info.encoder == DELTARLE) {
+			if (info.encoder == DELTARLE) {
 				//scan the buffer
 				valuet cur = buf[0];
 				if (val < cur) {
@@ -192,9 +177,21 @@ public:
 					return -(decpos+1);
 				}
 			} else {
-				//unknown encoder
-				ERROR("Unknown encoder" << info.encoder);
-				return -1;
+				if (buf.empty() || val < buf.front()) {
+					//off the bottom
+					return valuestore->index(val);
+				}
+				else if (val > buf.back()) {
+					//off the top
+					return -(valuestore->get_maxindex() + buf.size() + 1);
+				} else {
+					lb = boost::range::lower_bound(buf, val) - buf.begin();
+					if (buf[lb] == val) {
+						return lb + valuestore->get_maxindex();
+					} else {
+						return -(lb + valuestore->get_maxindex() + 1);
+					}
+				}
 			}
 		} else {
 			//scan the buffer first
@@ -248,11 +245,7 @@ public:
 			indext start = std::max((indext) 0, dxmin - vs_maxdx);
 			indext end = std::min((indext) buf.size(), (dxmin + npts) - vs_maxdx);
 
-			if (info.encoder == NONE) {
-				for (indext i = start; i < end; ++i) {
-					pts[vsres.len++] = buf[i];
-				}
-			} else if (info.encoder == DELTARLE) {
+			if (info.encoder == DELTARLE) {
 				if (end > 0) {
 					valuet cur = buf[0];
 					//i is position in the buffer, decpos is decoded pos
@@ -276,7 +269,11 @@ public:
 						}
 					}
 				}
-			} //ENCODER
+			} else {
+				for (indext i = start; i < end; ++i) {
+					pts[vsres.len++] = buf[i];
+				}
+			}
 		}
 
 		return vsres;

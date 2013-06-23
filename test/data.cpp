@@ -16,7 +16,7 @@
 boost::shared_array<valuet> get_test_data(int npoints, testdatatype type) {
 	boost::random::mt19937 rndgen;
 	boost::random::uniform_int_distribution<> dist(1, 100);
-	int i;
+	indext i;
 
 	valuet *pts = new valuet[npoints];
 	switch (type) {
@@ -40,6 +40,27 @@ boost::shared_array<valuet> get_test_data(int npoints, testdatatype type) {
 			pts[i] = i * 2;
 		}
 		break;
+	case MIXED:
+		if (npoints > 160) {
+			for (indext ldx = 0; ldx < npoints; ldx += 160) {
+				for (i = ldx; i < ldx+40; ++i) {
+					pts[i] = i*2;
+				}
+				for (i = ldx+40; i < ldx+80; ++i) {
+					pts[i] = i*3;
+				}
+				for (i = ldx+80; i < ldx+120; ++i) {
+					pts[i] = dist(rndgen);
+				}
+				for (i = ldx+120; i < ldx+160; ++i) {
+					pts[i] = i % 100;
+				}
+			}
+		}
+		//fill in the last bit (not very carefully)
+		for (i = std::max(0, npoints - 160); i < npoints; ++i) {
+			pts[i] = i % 100;
+		}
 	}
 
 	return boost::shared_array<valuet>(pts);
