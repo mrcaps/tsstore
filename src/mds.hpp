@@ -9,16 +9,16 @@
 #define MDS_HPP_
 
 #include <string>
+#include <boost/tuple/tuple.hpp>
 
 #include "encoder/encoder.hpp"
 
 //index
-typedef std::pair<indext, filepost> dxpair;
+typedef boost::tuple<indext, filepost> dxpair;
 typedef std::vector<dxpair> dxpair_list;
 inline bool compare_dxpair_list(dxpair fst, dxpair snd) {
-	return fst.first < snd.second;
+	return fst.get<0>() < snd.get<0>();
 }
-
 typedef struct {
 	streamid id; //unique id
 	std::string loc; //stream location (e.g., path)

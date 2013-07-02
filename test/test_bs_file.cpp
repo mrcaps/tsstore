@@ -51,19 +51,23 @@ BOOST_AUTO_TEST_CASE( encoders_test ) {
 	boost::random::uniform_int_distribution<> dist400(1, 400);
 
 	for (unsigned int etdx = 0;
-			etdx <= sizeof(encodert_values)/sizeof(encodert); ++etdx) {
+			etdx < sizeof(encodert_values)/sizeof(encodert); ++etdx) {
 		streaminfo info = {
 			++sid,
 			TMP_PATH().generic_string(),
 			0,
 			0,
 			encodert_values[etdx],
-			false
+			false,
+			std::vector<dxpair>()
 		};
+
+		BOOST_TEST_MESSAGE("Testing encoder " << info.encoder);
 
 		ValueStream vs(info, 1000);
 
 		indext npts = 1600;
+
 		//add some stuff
 		boost::shared_array<valuet> pts =
 				boost::shared_array<valuet>(get_test_data(npts, RANDOM));
@@ -71,10 +75,29 @@ BOOST_AUTO_TEST_CASE( encoders_test ) {
 				boost::shared_array<valuet>(new valuet[npts]);
 
 		indext ptsadd1 = dist400(rndgen);
+		std::cout << "WRITING " << ptsadd1 << " points... step 1" << std::endl;
 		vs.add_values(pts.get(), ptsadd1);
 
 		BOOST_CHECK_EQUAL(vs.read(ptsret.get(), dxrange(0, ptsadd1)).len, ptsadd1);
 		BOOST_CHECK( memcmp(pts.get(), ptsret.get(), ptsadd1*SIZEMULT) == 0 );
+		ptsret.get()[0] = 0;
+
+		//flush out that entire portion, and make sure we get the right
+		//stuff back.
+		vs.flush();
+		BOOST_CHECK_EQUAL(vs.read(ptsret.get(), dxrange(0, ptsadd1)).len, ptsadd1);
+		BOOST_CHECK( memcmp(pts.get(), ptsret.get(), ptsadd1*SIZEMULT) == 0 );
+		ptsret.get()[0] = 0;
+
+		//write another chunk
+		indext ptsadd2 = dist400(rndgen);
+		std::cout << "WRITING " << ptsadd2 << " points... step 2" << std::endl;
+		vs.add_values(pts.get() + ptsadd1, ptsadd2);
+
+		BOOST_CHECK_EQUAL(vs.read(ptsret.get(), dxrange(0, ptsadd1+ptsadd2)).len,
+				ptsadd1 + ptsadd2);
+		BOOST_CHECK( memcmp(pts.get(), ptsret.get(), (ptsadd1+ptsadd2)*SIZEMULT) == 0 );
+		ptsret.get()[0] = 0;
 	}
 
 }

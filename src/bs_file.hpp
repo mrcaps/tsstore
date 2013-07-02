@@ -13,6 +13,7 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/assert.hpp>
 #include <boost/scoped_array.hpp>
+#include <boost/tuple/tuple.hpp>
 
 #include "util.hpp"
 #include "mds.hpp"
@@ -62,6 +63,8 @@ public:
 			ndecpts = npts;
 		}
 
+		filepost prevtail = get_tail_pos();
+
 		if (info.encoder == NONE) {
 			//direct write
 			fs.write(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
@@ -80,11 +83,15 @@ public:
 			}
 		}
 
-		fs.flush();
+		//add an index point before the flush
+		//  pt0     pt1      maxindex
+		// /       /        /
+		// |-------|--------
+		//
+		info.index.push_back(dxpair(info.maxindex, prevtail));
 
-		//add an index point after the flush
+		fs.flush();
 		info.maxindex += ndecpts;
-		info.index.push_back(dxpair(info.maxindex, get_tail_pos()));
 
 		if (mds) {
 			//update metadata on flush
@@ -116,30 +123,35 @@ public:
 			dxpair_list::iterator it = std::lower_bound(
 					info.index.begin(), info.index.end(),
 					dxpair(req.start, 0), compare_dxpair_list);
+			print_vector(info.index);
+			std::cout << "vector had size " << info.index.size() << std::endl;
 
 			while (it != info.index.end()) {
+				std::cout << "hit loop!" << std::endl;
 				//don't go past the end of the stream
-				if (it->first > req.start + req.len) {
+				if (tup_fst(*it) > req.start + req.len) {
+					std::cout << "break loop: fst is " << tup_fst(*it) <<
+							"start, len=" << req.start << req.len << std::endl;
 					break;
 				}
 
 				//number of points in block
-				indext pts_in_block = info.maxindex - it->first;
+				indext pts_in_block = info.maxindex - tup_fst(*it);
 				//size of data in block
-				filepost blocksize = get_tail_pos() - it->second;
+				filepost blocksize = get_tail_pos() - tup_snd(*it);
 				if (it + 1 != info.index.end()) {
-					pts_in_block = (it+1)->first - it->first;
-					blocksize = (it+1)->second - it->second;
+					pts_in_block = tup_fst(*(it+1)) - tup_fst(*it);
+					blocksize = tup_snd(*(it+1)) - tup_snd(*it);
 				}
 
 				//read in a block
 				value_block vb;
 				vb.data = boost::shared_array<streamt>(new streamt[blocksize]);
-				fs.seekg(it->second);
+				fs.seekg(it->get<1>());
 				fs.read(vb.data.get(), blocksize);
 				vb.data_len = blocksize;
 				vb.encoder = info.encoder;
-				vb.range = dxrange(it->first, pts_in_block);
+				vb.range = dxrange(it->get<0>(), pts_in_block);
 				rr.blocks.push_back(vb);
 
 				++it;
@@ -171,7 +183,7 @@ public:
 					vb.range.len);
 			break;
 		default:
-			ERROR("Unknown encoder" << vb.encoder);
+			ERROR("Unknown encoder " << vb.encoder);
 			ndec = 0;
 		}
 
@@ -219,7 +231,7 @@ public:
 					boost::scoped_array<valuet> scratch(
 							new valuet[PAD_SIZE(it->range.len*SIZEMULT)]);
 					indext ndec = decode_block(*it, scratch.get());
-					BOOST_ASSERT(ndec == it->data_len);
+					BOOST_ASSERT(ndec == it->range.len);
 					std::copy(scratch.get() + before_first,
 							scratch.get() + before_first + declen,
 							pts_head);
@@ -227,7 +239,7 @@ public:
 				} else {
 					//decompress a whole block directly to the out ptr
 					indext ndec = decode_block(*it, pts_head);
-					BOOST_ASSERT(ndec == it->data_len);
+					BOOST_ASSERT(ndec == it->range.len);
 					pts_head += ndec*SIZEMULT;
 				}
 			}
