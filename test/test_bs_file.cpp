@@ -94,9 +94,24 @@ BOOST_AUTO_TEST_CASE( encoders_test ) {
 		std::cout << "WRITING " << ptsadd2 << " points... step 2" << std::endl;
 		vs.add_values(pts.get() + ptsadd1, ptsadd2);
 
+		//try reading everything in the stream
 		BOOST_CHECK_EQUAL(vs.read(ptsret.get(), dxrange(0, ptsadd1+ptsadd2)).len,
 				ptsadd1 + ptsadd2);
 		BOOST_CHECK( memcmp(pts.get(), ptsret.get(), (ptsadd1+ptsadd2)*SIZEMULT) == 0 );
+		ptsret.get()[0] = 0;
+
+		//some middle segment...
+		indext trim_l = ptsadd1;
+		indext trim_r = ptsadd2;
+		while (trim_l + trim_r >= ptsadd1 + ptsadd2) {
+			trim_l = dist100(rndgen);
+			trim_r = dist100(rndgen);
+		}
+
+		indext rangelen = ptsadd1 + ptsadd2 - trim_l - trim_r;
+		BOOST_CHECK_EQUAL(vs.read(ptsret.get(), dxrange(trim_l, rangelen)).len,
+				rangelen);
+		BOOST_CHECK( memcmp(pts.get() + trim_l, ptsret.get(), rangelen*SIZEMULT) == 0 );
 		ptsret.get()[0] = 0;
 	}
 

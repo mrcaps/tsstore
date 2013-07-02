@@ -250,12 +250,16 @@ public:
 					valuet cur = buf[0];
 					//i is position in the buffer, decpos is decoded pos
 					indext decpos = 0;
-					if (decpos >= start) {
+					if (decpos >= start && vsres.len < npts) {
 						pts[vsres.len++] = cur;
 					}
 					for (indext i = 1; i < buf.size(); ++i) {
 						cur += buf[i]; ++decpos;
+						//hmm, hope branch prediction gets these...
 						if (decpos >= start) {
+							if (vsres.len >= npts) {
+								break;
+							}
 							pts[vsres.len++] = cur;
 						}
 						if (i > 1 && buf[i] == buf[i-1]) {
@@ -263,6 +267,9 @@ public:
 							for (indext rdx = 0; rdx < buf[i]; ++rdx) {
 								cur += buf[i-1]; ++decpos;
 								if (decpos >= start) {
+									if (vsres.len >= npts) {
+										break;
+									}
 									pts[vsres.len++] = cur;
 								}
 							}

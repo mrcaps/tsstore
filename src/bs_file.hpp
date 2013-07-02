@@ -191,8 +191,8 @@ public:
 	}
 
 	dxrange read_exact(valuet *pts, dxrange req) {
-		//direct seek if we have no encoder
 		if (info.encoder == NONE) {
+			//direct seek if we have no encoder
 			if (req.start > info.maxindex) {
 				return dxrange(req.start, 0);
 			}
@@ -209,10 +209,11 @@ public:
 				return dxrange(dxmin, npts);
 			}
 		} else {
+			//need to decode a range
 			read_result rr = read(req);
 			indext bottom = req.start;
-			//copy over relevant points
 
+			//copy over relevant points
 			valuet *pts_head = pts;
 			indext mindx = std::numeric_limits<indext>::max()-1;
 
@@ -220,10 +221,22 @@ public:
 					it != rr.blocks.end(); ++it) {
 				mindx = std::min(mindx, it->range.start);
 
+				// in index space:
+				//
+				//      a       b
+				//  |---|       |---|
+				//  |---------------|
+				//  c               d
+				//
+				//  a - bottom
+				//  b - req.start + req.len
+				//  c - it->range.start
+				//  d - it->range.start + it->range.len
+
 				indext before_first = std::max(static_cast<indext>(0),
 						bottom - it->range.start);
 				indext after_last = std::max(static_cast<indext>(0),
-						req.start + req.len - (it->range.start + it->range.len));
+						(it->range.start + it->range.len) - (req.start + req.len));
 				indext declen = it->range.len - before_first - after_last;
 
 				if (before_first > 0 || after_last > 0) {
@@ -242,6 +255,11 @@ public:
 					BOOST_ASSERT(ndec == it->range.len);
 					pts_head += ndec*SIZEMULT;
 				}
+			}
+
+			//we didn't read anything.
+			if (pts_head == pts) {
+				mindx = req.start;
 			}
 
 			return dxrange(mindx, (pts_head-pts)/SIZEMULT);
