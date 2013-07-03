@@ -120,17 +120,28 @@ public:
 			rr.blocks.push_back(vb);
 		} else {
 			//find the index point
-			dxpair_list::iterator it = std::lower_bound(
+			//upper_bound: first element which compares greater than val
+			//	(furthermost into which search key can be inserted w/o violating ordering)
+			dxpair_list::iterator it = std::upper_bound(
 					info.index.begin(), info.index.end(),
 					dxpair(req.start, 0), compare_dxpair_list);
 			print_vector(info.index);
 			std::cout << "vector had size " << info.index.size() << std::endl;
 
+			//might need to step one block before upper_bound
+			if (info.index.size() > 0) {
+				it -= 1;
+			}
+
 			while (it != info.index.end()) {
 				std::cout << "hit loop!" << std::endl;
+
+				std::cout << " fst = " << tup_fst(*it) << std::endl;
+				std::cout << " req.start, req.len = " << req.start << " " << req.len;
 				//don't go past the end of the stream
 				if (tup_fst(*it) > req.start + req.len) {
-					std::cout << "break loop: fst is " << tup_fst(*it) <<
+					std::cout << "BSFile::read past end: " <<
+							"fst is " << tup_fst(*it) <<
 							"start, len=" << req.start << req.len << std::endl;
 					break;
 				}
@@ -144,19 +155,35 @@ public:
 					blocksize = tup_snd(*(it+1)) - tup_snd(*it);
 				}
 
+				//don't go before the beginning of the stream
+				if (tup_fst(*it) + pts_in_block < req.start) {
+					std::cout << "BSFile::read before begin: " <<
+							"fst is " << tup_fst(*it) << " snd is " << tup_snd(*it) <<
+							"start, len=" << req.start << req.len << std::endl;
+					break;
+				}
+
+				std::cout << "pts_in_block, blocksize=" << pts_in_block << " " << blocksize << std::endl;
+				std::cout << "filepos = " << tup_fst(*it) << " " << tup_snd(*it) << std::endl;
+
 				//read in a block
 				value_block vb;
 				vb.data = boost::shared_array<streamt>(new streamt[blocksize]);
-				fs.seekg(it->get<1>());
+				fs.seekg(tup_snd(*it));
 				fs.read(vb.data.get(), blocksize);
 				vb.data_len = blocksize;
 				vb.encoder = info.encoder;
-				vb.range = dxrange(it->get<0>(), pts_in_block);
+				vb.range = dxrange(tup_fst(*it), pts_in_block);
 				rr.blocks.push_back(vb);
 
 				++it;
 			}
+
+			if (info.encoder == ZLIB) {
+				std::cout << "zlib done read" << std::endl;
+			}
 		}
+
 		return rr;
 	}
 
@@ -260,6 +287,8 @@ public:
 			//we didn't read anything.
 			if (pts_head == pts) {
 				mindx = req.start;
+				std::cout << " got to pts_head == pts case " << std::endl;
+				std::cout << " pts_head, pts = " << pts_head << " " << pts << std::endl;
 			}
 
 			return dxrange(mindx, (pts_head-pts)/SIZEMULT);

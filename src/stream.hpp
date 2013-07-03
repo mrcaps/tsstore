@@ -238,7 +238,9 @@ public:
 		indext npts = req.len;
 		//try to get points from the stored stream
 		dxrange vsres = valuestore->read_exact(pts, dxrange(dxmin, npts));
+		BOOST_TEST_MESSAGE("got from valuestore: start="<< vsres.start << " len=" << vsres.len);
 		indext vs_maxdx = valuestore->get_maxindex();
+		BOOST_TEST_MESSAGE("valuestore maxindex: " << vs_maxdx);
 
 		if (dxmin + npts > vs_maxdx) {
 			//read vals from buffer

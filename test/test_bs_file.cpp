@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE( encoders_test ) {
 				boost::shared_array<valuet>(new valuet[npts]);
 
 		indext ptsadd1 = dist400(rndgen);
-		std::cout << "WRITING " << ptsadd1 << " points... step 1" << std::endl;
+		BOOST_TEST_MESSAGE("writing " << ptsadd1 << " points... step 1");
 		vs.add_values(pts.get(), ptsadd1);
 
 		BOOST_CHECK_EQUAL(vs.read(ptsret.get(), dxrange(0, ptsadd1)).len, ptsadd1);
@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE( encoders_test ) {
 
 		//write another chunk
 		indext ptsadd2 = dist400(rndgen);
-		std::cout << "WRITING " << ptsadd2 << " points... step 2" << std::endl;
+		BOOST_TEST_MESSAGE("writing " << ptsadd2 << " points... step 2");
 		vs.add_values(pts.get() + ptsadd1, ptsadd2);
 
 		//try reading everything in the stream
@@ -109,6 +109,7 @@ BOOST_AUTO_TEST_CASE( encoders_test ) {
 		}
 
 		indext rangelen = ptsadd1 + ptsadd2 - trim_l - trim_r;
+		BOOST_TEST_MESSAGE("querying for " << rangelen << " points");
 		BOOST_CHECK_EQUAL(vs.read(ptsret.get(), dxrange(trim_l, rangelen)).len,
 				rangelen);
 		BOOST_CHECK( memcmp(pts.get() + trim_l, ptsret.get(), rangelen*SIZEMULT) == 0 );
