@@ -11,7 +11,6 @@
 #include <inttypes.h>
 
 #include <boost/filesystem.hpp>
-#include <boost/tuple/tuple_io.hpp>
 
 #undef DISALLOW_EVIL_CONSTRUCTORS
 #define DISALLOW_EVIL_CONSTRUCTORS(TypeName) \
@@ -47,9 +46,6 @@ inline void print_vector(std::vector<T> vec) {
 #undef TMP_PATH
 #define TMP_PATH() \
 	(boost::filesystem::unique_path("_%%%%-%%%%-%%%%.tmp"))
-
-#define tup_fst(X) (boost::tuples::get<0>(X))
-#define tup_snd(X) (boost::tuples::get<1>(X))
 
 //#define DEBUG_BUILD
 

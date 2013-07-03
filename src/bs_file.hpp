@@ -13,7 +13,6 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/assert.hpp>
 #include <boost/scoped_array.hpp>
-#include <boost/tuple/tuple.hpp>
 
 #include "util.hpp"
 #include "mds.hpp"
@@ -129,7 +128,7 @@ public:
 		// /       /        /
 		// |-------|--------
 		//
-		info.index.push_back(dxpair(info.maxindex, prevtail));
+		info.index.push_back(dxpair(info.maxindex, prevtail, pts[0]));
 
 		fs.flush();
 		info.maxindex += ndecpts;
@@ -165,48 +164,26 @@ public:
 			//	(furthermost into which search key can be inserted w/o violating ordering)
 			dxpair_list::iterator it = std::upper_bound(
 					info.index.begin(), info.index.end(),
-					dxpair(req.start, 0), compare_dxpair_list);
-			print_vector(info.index);
-
+					dxpair(req.start, 0, 0), compare_dxpair_list_dx);
 			//might need to step one block before upper_bound
 			if (info.index.size() > 0) {
 				it -= 1;
 			}
 
 			while (it != info.index.end()) {
-				//don't go past the end of the stream
-				if (tup_fst(*it) > req.start + req.len) {
-					DEBUG("  BSFile::read past end: " <<
-							"fst is " << tup_fst(*it) <<
-							"start, len=" << req.start << req.len);
-					break;
-				}
-
-				//number of points in block
-				indext pts_in_block = info.maxindex - tup_fst(*it);
-				//size of data in block
-				filepost blocksize = get_tail_pos() - tup_snd(*it);
-				if (it + 1 != info.index.end()) {
-					pts_in_block = tup_fst(*(it+1)) - tup_fst(*it);
-					blocksize = tup_snd(*(it+1)) - tup_snd(*it);
-				}
-
-				//don't go before the beginning of the stream
-				if (tup_fst(*it) + pts_in_block < req.start) {
-					DEBUG("  BSFile::read before begin: " <<
-							"fst=" << tup_fst(*it) << " snd=" << tup_snd(*it) <<
-							"start=" << req.start << " len=" << req.len);
+				std::pair<indext, filepost> dim = get_block_dim(it);
+				if (!is_block_in_range(it->dx, dim.first, req.start, req.len)) {
 					break;
 				}
 
 				//read in a block
 				value_block vb;
-				vb.data = boost::shared_array<streamt>(new streamt[blocksize]);
-				fs_seekg(tup_snd(*it));
-				fs_read(vb.data.get(), blocksize);
-				vb.data_len = blocksize;
+				vb.data = boost::shared_array<streamt>(new streamt[dim.second]);
+				fs_seekg(it->fpos);
+				fs_read(vb.data.get(), dim.second);
+				vb.data_len = dim.second;
 				vb.encoder = info.encoder;
-				vb.range = dxrange(tup_fst(*it), pts_in_block);
+				vb.range = dxrange(it->dx, dim.first);
 				rr.blocks.push_back(vb);
 
 				++it;
@@ -214,6 +191,47 @@ public:
 		}
 
 		return rr;
+	}
+
+	/**
+	 * For the block with index pointer p at the beginning, find:
+	 * The
+	 */
+	std::pair<indext, filepost> get_block_dim(dxpair_list::iterator p) {
+		//number of points in block
+		indext pts_in_block = info.maxindex - p->dx;
+		//size of data in block
+		filepost blocksize = get_tail_pos() - p->fpos;
+		if (p + 1 != info.index.end()) {
+			pts_in_block = (p+1)->dx - p->dx;
+			blocksize = (p+1)->fpos - p->fpos;
+		}
+
+		return std::pair<indext, filepost>(pts_in_block, blocksize);
+	}
+
+	bool is_block_in_range(
+			indext block_start,
+			indext block_len,
+			indext req_start,
+			indext req_len) {
+		//don't go past the end of the stream
+		if (block_start > req_start + req_len) {
+			DEBUG("  BSFile::read past end: " <<
+					"fst is " << tup_fst(*it) <<
+					"start, len=" << req.start << req.len);
+			return false;
+		}
+
+		//don't go before the beginning of the stream
+		if (block_start + block_len < req_start) {
+			DEBUG("  BSFile::read before begin: " <<
+					"fst=" << tup_fst(*it) << " snd=" << tup_snd(*it) <<
+					"start=" << req.start << " len=" << req.len);
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -323,42 +341,62 @@ public:
 	}
 
 	indext index(valuet pt) {
-		if (info.sorted) {
-			//binary search
-			indext lo = info.minindex;
-			indext hi = info.maxindex;
-			indext mid = 0;
-			valuet cur = 0;
-			while (lo <= hi) {
-				mid = (lo + hi) / 2;
-				fs_seekg(SIZEMULT*(mid - info.minindex));
-				fs_read(reinterpret_cast<streamt*>(&cur), SIZEMULT*1);
-				if (cur > pt) {
-					hi = mid - 1;
-				} else if (cur < pt) {
-					lo = mid + 1;
-				} else {
-					return mid;
-				}
-			}
-
-			return -(mid + 1);
-		} else {
-			//unsorted, unindexed: we need to scan.
-			const indext BUFSIZE = 1024;
-			valuet buf[BUFSIZE];
-			for (indext dx = info.minindex; dx < info.maxindex; dx += BUFSIZE) {
-				int npts = std::min(BUFSIZE, info.maxindex - dx);
-				read_exact(buf, dxrange(dx, npts));
-				//scan the buffer
-				for (int i = 0; i < npts; ++i) {
-					if (buf[i] == pt) {
-						return i + dx;
+		if (info.encoder == NONE) {
+			if (info.sorted) {
+				//binary search
+				indext lo = info.minindex;
+				indext hi = info.maxindex;
+				indext mid = 0;
+				valuet cur = 0;
+				while (lo <= hi) {
+					mid = (lo + hi) / 2;
+					fs_seekg(SIZEMULT*(mid - info.minindex));
+					fs_read(reinterpret_cast<streamt*>(&cur), SIZEMULT*1);
+					if (cur > pt) {
+						hi = mid - 1;
+					} else if (cur < pt) {
+						lo = mid + 1;
+					} else {
+						return mid;
 					}
 				}
-			}
 
-			return NO_INDEX;
+				return -(mid + 1);
+			} else {
+				//unsorted, unindexed: we need to scan.
+				const indext BUFSIZE = 1024;
+				valuet buf[BUFSIZE];
+				for (indext dx = info.minindex; dx < info.maxindex; dx += BUFSIZE) {
+					int npts = std::min(BUFSIZE, info.maxindex - dx);
+					read_exact(buf, dxrange(dx, npts));
+					//scan the buffer
+					for (int i = 0; i < npts; ++i) {
+						if (buf[i] == pt) {
+							return i + dx;
+						}
+					}
+				}
+
+				return NO_INDEX;
+			}
+		} else {
+			//TODO: index for encoded blocks
+			if (info.sorted) {
+				//find the index point
+				//upper_bound: first element which compares greater than val
+				//	(furthermost into which search key can be inserted w/o violating ordering)
+				dxpair_list::iterator it = std::upper_bound(
+						info.index.begin(), info.index.end(),
+						dxpair(0, 0, pt), compare_dxpair_list_val);
+				//might need to step one block before upper_bound
+				if (info.index.size() > 0) {
+					it -= 1;
+				}
+
+
+			} else {
+				//TODO: index unsorted blocks
+			}
 		}
 	}
 

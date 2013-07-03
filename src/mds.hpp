@@ -9,16 +9,32 @@
 #define MDS_HPP_
 
 #include <string>
-#include <boost/tuple/tuple.hpp>
 
 #include "encoder/encoder.hpp"
 
-//index
-typedef boost::tuple<indext, filepost> dxpair;
+//might as well break this out instead of using a tuple.
+struct dxpair {
+	indext dx; //index in the stream
+	filepost fpos; //file position
+	valuet val; //value at the location
+
+	friend std::ostream& operator<<(std::ostream &os, dxpair &p) {
+		return os <<
+				"dxpair{dx=" << p.dx <<
+				" fpos=" << p.fpos <<
+				" val=" << p.val << "}";
+	}
+
+	dxpair(indext _dx, filepost _fpos, valuet _val) : dx(_dx), fpos(_fpos), val(_val) {}
+};
 typedef std::vector<dxpair> dxpair_list;
-inline bool compare_dxpair_list(dxpair fst, dxpair snd) {
-	return fst.get<0>() < snd.get<0>();
+inline bool compare_dxpair_list_dx(dxpair fst, dxpair snd) {
+	return fst.dx < snd.dx;
 }
+inline bool compare_dxpair_list_val(dxpair fst, dxpair snd) {
+	return fst.val < snd.val;
+}
+
 typedef struct {
 	streamid id; //unique id
 	std::string loc; //stream location (e.g., path)
