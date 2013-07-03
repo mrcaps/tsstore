@@ -84,6 +84,7 @@ BOOST_AUTO_TEST_CASE( encoders_test ) {
 
 		//flush out that entire portion, and make sure we get the right
 		//stuff back.
+		std::cout << "FIRST FLUSH!" << std::endl;
 		vs.flush();
 		BOOST_CHECK_EQUAL(vs.read(ptsret.get(), dxrange(0, ptsadd1)).len, ptsadd1);
 		BOOST_CHECK( memcmp(pts.get(), ptsret.get(), ptsadd1*SIZEMULT) == 0 );
@@ -114,8 +115,28 @@ BOOST_AUTO_TEST_CASE( encoders_test ) {
 				rangelen);
 		BOOST_CHECK( memcmp(pts.get() + trim_l, ptsret.get(), rangelen*SIZEMULT) == 0 );
 		ptsret.get()[0] = 0;
-	}
 
+		//some chunk out of the blockstore
+		if (ptsadd1 > 10) {
+			indext ch_start = ptsadd1 / 4;
+			indext ch_end = ptsadd1 * 3 / 4;
+			BOOST_CHECK_EQUAL(vs.read(ptsret.get(),
+					dxrange(ch_start, ch_end-ch_start)).len, ch_end - ch_start);
+			BOOST_CHECK( memcmp(pts.get() + ch_start, ptsret.get(), (ch_end-ch_start)*SIZEMULT) == 0 );
+			ptsret.get()[0] = 0;
+		}
+
+		//flush the second chunk and run query again.
+		std::cout << "SECOND FLUSH!" << std::endl;
+		vs.flush();
+
+		BOOST_CHECK_EQUAL(vs.read(ptsret.get(), dxrange(trim_l, rangelen)).len,
+				rangelen);
+		BOOST_CHECK( memcmp(pts.get() + trim_l, ptsret.get(), rangelen*SIZEMULT) == 0 );
+		ptsret.get()[0] = 0;
+
+
+	}
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -25,6 +25,10 @@ private:
 	DISALLOW_EVIL_CONSTRUCTORS(BSFile);
 	streaminfo info;
 	boost::filesystem::basic_fstream<streamt> fs;
+	//seek pointers for put and get on basic_fstream are not the same.
+	filepost fs_ploc;
+	filepost fs_gloc;
+
 	boost::filesystem::path stream_path;
 	boost::shared_ptr<MDS> mds;
 
@@ -37,8 +41,45 @@ private:
 			fs.open(stream_path, std::ios_base::in | std::ios_base::out |
 					std::ios_base::app | std::ios_base::binary);
 		}
+		fs_ploc = fs.tellp();
+		fs_gloc = fs.tellg();
 	}
 
+	//
+	// workarounds for non-separate put/get pointers
+	//
+
+	void fs_seekg(filepost loc) {
+		fs.seekg(loc);
+		fs_gloc = loc;
+	}
+
+	filepost fs_tellg() {
+		return fs_gloc;
+	}
+
+	void fs_seekp(filepost loc) {
+		fs.seekp(loc);
+		fs_ploc = loc;
+	}
+
+	filepost fs_tellp() {
+		return fs_ploc;
+	}
+
+	void fs_write(streamt *pts, filepost size) {
+		fs.write(pts, size);
+		if (!fs.fail()) {
+			fs_ploc += size;
+		}
+	}
+
+	void fs_read(streamt *pts, filepost size) {
+		fs.read(pts, size);
+		if (!fs.fail()) {
+			fs_gloc += size;
+		}
+	}
 
 public:
 	BSFile(MDS mds, streamid id) {
@@ -67,18 +108,18 @@ public:
 
 		if (info.encoder == NONE) {
 			//direct write
-			fs.write(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
+			fs_write(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
 		} else {
 			if (info.encoder == DELTARLE) {
 				//TODO: variable-width encode?
-				fs.write(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
+				fs_write(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
 			} else if (info.encoder == ZLIB) {
 				//TODO: use a chunk size that isn't the size of the flush?
 				// (note that deflate() needs an intermediate buffer anyway,
 				//	so this shouldn't be too horrible)
 				streamt *charr = new streamt[(int) (SIZEMULT*npts*1.1)+12];
 				filepost write = zlib_encode(pts, npts, charr);
-				fs.write(charr, write);
+				fs_write(charr, write);
 				delete[] charr;
 			}
 		}
@@ -88,10 +129,13 @@ public:
 		// /       /        /
 		// |-------|--------
 		//
+		std::cout << "push; tail@" << prevtail << std::endl;
 		info.index.push_back(dxpair(info.maxindex, prevtail));
 
 		fs.flush();
 		info.maxindex += ndecpts;
+
+		std::cout << "next tail@" << get_tail_pos() << std::endl;
 
 		if (mds) {
 			//update metadata on flush
@@ -105,7 +149,7 @@ public:
 	}
 
 	filepost get_tail_pos() {
-		return fs.tellp();
+		return fs_tellp();
 	}
 
 	read_result read(dxrange req) {
@@ -136,11 +180,11 @@ public:
 			while (it != info.index.end()) {
 				std::cout << "hit loop!" << std::endl;
 
-				std::cout << " fst = " << tup_fst(*it) << std::endl;
-				std::cout << " req.start, req.len = " << req.start << " " << req.len;
+				std::cout << "  fst=" << tup_fst(*it) << std::endl;
+				std::cout << "  req.start=" << req.start << " req.len=" << req.len << std::endl;
 				//don't go past the end of the stream
 				if (tup_fst(*it) > req.start + req.len) {
-					std::cout << "BSFile::read past end: " <<
+					std::cout << "  BSFile::read past end: " <<
 							"fst is " << tup_fst(*it) <<
 							"start, len=" << req.start << req.len << std::endl;
 					break;
@@ -150,27 +194,30 @@ public:
 				indext pts_in_block = info.maxindex - tup_fst(*it);
 				//size of data in block
 				filepost blocksize = get_tail_pos() - tup_snd(*it);
+				std::cout << "  tail@" << get_tail_pos() << " last snd=" << tup_snd(*it) << std::endl;
+				std::cout << "  first blocksize was " << blocksize << std::endl;
 				if (it + 1 != info.index.end()) {
 					pts_in_block = tup_fst(*(it+1)) - tup_fst(*it);
 					blocksize = tup_snd(*(it+1)) - tup_snd(*it);
+					std::cout << "  second blocksize was " << blocksize << std::endl;
 				}
 
 				//don't go before the beginning of the stream
 				if (tup_fst(*it) + pts_in_block < req.start) {
-					std::cout << "BSFile::read before begin: " <<
-							"fst is " << tup_fst(*it) << " snd is " << tup_snd(*it) <<
-							"start, len=" << req.start << req.len << std::endl;
+					std::cout << "  BSFile::read before begin: " <<
+							"fst=" << tup_fst(*it) << " snd=" << tup_snd(*it) <<
+							"start=" << req.start << " len=" << req.len << std::endl;
 					break;
 				}
 
-				std::cout << "pts_in_block, blocksize=" << pts_in_block << " " << blocksize << std::endl;
-				std::cout << "filepos = " << tup_fst(*it) << " " << tup_snd(*it) << std::endl;
+				std::cout << "  pts_in_block=" << pts_in_block << " blocksize=" << blocksize << std::endl;
+				std::cout << "  index=" << tup_fst(*it) << " fpos=" << tup_snd(*it) << std::endl;
 
 				//read in a block
 				value_block vb;
 				vb.data = boost::shared_array<streamt>(new streamt[blocksize]);
-				fs.seekg(tup_snd(*it));
-				fs.read(vb.data.get(), blocksize);
+				fs_seekg(tup_snd(*it));
+				fs_read(vb.data.get(), blocksize);
 				vb.data_len = blocksize;
 				vb.encoder = info.encoder;
 				vb.range = dxrange(tup_fst(*it), pts_in_block);
@@ -228,8 +275,8 @@ public:
 					(info.maxindex - info.minindex) - dxmin);
 
 			check_open();
-			fs.seekg(SIZEMULT*(dxmin - info.minindex));
-			fs.read(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
+			fs_seekg(SIZEMULT*(dxmin - info.minindex));
+			fs_read(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
 			if (fs.fail()) {
 				return dxrange(req.start, 0);
 			} else {
@@ -304,8 +351,8 @@ public:
 			valuet cur = 0;
 			while (lo <= hi) {
 				mid = (lo + hi) / 2;
-				fs.seekg(SIZEMULT*(mid - info.minindex));
-				fs.read(reinterpret_cast<streamt*>(&cur), SIZEMULT*1);
+				fs_seekg(SIZEMULT*(mid - info.minindex));
+				fs_read(reinterpret_cast<streamt*>(&cur), SIZEMULT*1);
 				if (cur > pt) {
 					hi = mid - 1;
 				} else if (cur < pt) {
