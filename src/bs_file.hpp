@@ -129,13 +129,10 @@ public:
 		// /       /        /
 		// |-------|--------
 		//
-		std::cout << "push; tail@" << prevtail << std::endl;
 		info.index.push_back(dxpair(info.maxindex, prevtail));
 
 		fs.flush();
 		info.maxindex += ndecpts;
-
-		std::cout << "next tail@" << get_tail_pos() << std::endl;
 
 		if (mds) {
 			//update metadata on flush
@@ -170,7 +167,6 @@ public:
 					info.index.begin(), info.index.end(),
 					dxpair(req.start, 0), compare_dxpair_list);
 			print_vector(info.index);
-			std::cout << "vector had size " << info.index.size() << std::endl;
 
 			//might need to step one block before upper_bound
 			if (info.index.size() > 0) {
@@ -178,15 +174,11 @@ public:
 			}
 
 			while (it != info.index.end()) {
-				std::cout << "hit loop!" << std::endl;
-
-				std::cout << "  fst=" << tup_fst(*it) << std::endl;
-				std::cout << "  req.start=" << req.start << " req.len=" << req.len << std::endl;
 				//don't go past the end of the stream
 				if (tup_fst(*it) > req.start + req.len) {
-					std::cout << "  BSFile::read past end: " <<
+					DEBUG("  BSFile::read past end: " <<
 							"fst is " << tup_fst(*it) <<
-							"start, len=" << req.start << req.len << std::endl;
+							"start, len=" << req.start << req.len);
 					break;
 				}
 
@@ -194,24 +186,18 @@ public:
 				indext pts_in_block = info.maxindex - tup_fst(*it);
 				//size of data in block
 				filepost blocksize = get_tail_pos() - tup_snd(*it);
-				std::cout << "  tail@" << get_tail_pos() << " last snd=" << tup_snd(*it) << std::endl;
-				std::cout << "  first blocksize was " << blocksize << std::endl;
 				if (it + 1 != info.index.end()) {
 					pts_in_block = tup_fst(*(it+1)) - tup_fst(*it);
 					blocksize = tup_snd(*(it+1)) - tup_snd(*it);
-					std::cout << "  second blocksize was " << blocksize << std::endl;
 				}
 
 				//don't go before the beginning of the stream
 				if (tup_fst(*it) + pts_in_block < req.start) {
-					std::cout << "  BSFile::read before begin: " <<
+					DEBUG("  BSFile::read before begin: " <<
 							"fst=" << tup_fst(*it) << " snd=" << tup_snd(*it) <<
-							"start=" << req.start << " len=" << req.len << std::endl;
+							"start=" << req.start << " len=" << req.len);
 					break;
 				}
-
-				std::cout << "  pts_in_block=" << pts_in_block << " blocksize=" << blocksize << std::endl;
-				std::cout << "  index=" << tup_fst(*it) << " fpos=" << tup_snd(*it) << std::endl;
 
 				//read in a block
 				value_block vb;
@@ -224,10 +210,6 @@ public:
 				rr.blocks.push_back(vb);
 
 				++it;
-			}
-
-			if (info.encoder == ZLIB) {
-				std::cout << "zlib done read" << std::endl;
 			}
 		}
 
@@ -334,8 +316,6 @@ public:
 			//we didn't read anything.
 			if (pts_head == pts) {
 				mindx = req.start;
-				std::cout << " got to pts_head == pts case " << std::endl;
-				std::cout << " pts_head, pts = " << pts_head << " " << pts << std::endl;
 			}
 
 			return dxrange(mindx, (pts_head-pts)/SIZEMULT);

@@ -43,12 +43,12 @@ public:
 	}
 
 	bool update_maxindex(streamid id, indext maxindex) {
-		std::cout << "updating maxindex id=" << id << " maxindex=" << maxindex << std::endl;
+		DEBUG("updating maxindex id=" << id << " maxindex=" << maxindex);
 		return true;
 	}
 
 	bool update_index(streamid id, dxpair_list lst) {
-		std::cout << "updating index id=" << id << std::endl;
+		DEBUG("updating index id=" << id);
 		return true;
 	}
 
