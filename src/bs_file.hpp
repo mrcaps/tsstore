@@ -195,7 +195,8 @@ public:
 
 	/**
 	 * For the block with index pointer p at the beginning, find:
-	 * The
+	 * first: the number of points in the block
+	 * second: the size of the block on disk
 	 */
 	std::pair<indext, filepost> get_block_dim(dxpair_list::iterator p) {
 		//number of points in block
@@ -393,7 +394,34 @@ public:
 					it -= 1;
 				}
 
+				while (it != info.index.end()) {
+					std::pair<indext, filepost> dim = get_block_dim(it);
 
+					//for now, do nothing cleverer than just decode-and-scan
+					//TODO: optimize for streaming decoders (deltarle)
+
+					//read in a block
+					value_block vb;
+					vb.data = boost::shared_array<streamt>(new streamt[dim.second]);
+					fs_seekg(it->fpos);
+					fs_read(vb.data.get(), dim.second);
+					vb.data_len = dim.second;
+					vb.encoder = info.encoder;
+					vb.range = dxrange(it->dx, dim.first);
+
+					boost::scoped_array<valuet> decvals(new valuet[dim.first]);
+					//indext ndec = decode_block(vb, decvals.get());
+					valuet* lb = std::lower_bound(decvals.get(), decvals.get() + dim.first, pt);
+
+					//we're within the block
+					if (lb < decvals.get() + dim.first) {
+						return (lb - decvals.get());
+					}
+
+					it++;
+				}
+
+				return NO_INDEX;
 			} else {
 				//TODO: index unsorted blocks
 			}
