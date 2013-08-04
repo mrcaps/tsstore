@@ -155,6 +155,9 @@ public:
 		return points;
 	}
 
+	/**
+	 * Convert all data to time-ordered <stream, timestamp, value> format
+	 */
 	std::vector<pointt> to_rows() {
 		std::vector<pointt> rows;
 		streamid id = 0;
@@ -162,13 +165,9 @@ public:
 				sit != streams_end(); sit++) {
 			std::vector<pointt> pts = read_stream_fully(*sit, ++id);
 			rows.insert(rows.end(), pts.begin(), pts.end());
-			for (std::vector<pointt>::iterator it = pts.begin();
-					it != pts.end(); it++) {
-				rows.push_back(*it);
-			}
 		}
 
-		//std::sort(rows.begin(), rows.end(), pointt_timestamp_sort);
+		std::sort(rows.begin(), rows.end(), pointt_timestamp_sort);
 
 		return rows;
 	}
