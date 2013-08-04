@@ -24,4 +24,19 @@ BOOST_AUTO_TEST_CASE( data_test ) {
 	BOOST_CHECK_EQUAL(2, nfiles);
 }
 
+BOOST_AUTO_TEST_CASE( to_rows_test ) {
+	ColumnDataLoader loader("testdata/trivial");
+
+	std::vector<pointt> rows = loader.to_rows();
+
+	int npoints = 0;
+	for (std::vector<pointt>::iterator rs = rows.begin(); rs != rows.end(); rs++) {
+		if (npoints < 100) {
+			BOOST_TEST_MESSAGE("point " << rs->stream << " " << rs->t << " " << rs->v);
+		}
+
+		++npoints;
+	}
+}
+
 BOOST_AUTO_TEST_SUITE_END()

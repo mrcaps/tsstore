@@ -41,6 +41,10 @@ typedef struct {
 	boost::filesystem::path vsfile;
 } data_stream_loc;
 
+inline bool pointt_timestamp_sort(pointt a, pointt b) {
+	return a.t < b.t;
+}
+
 class ColumnDataLoader {
 private:
 	DISALLOW_EVIL_CONSTRUCTORS(ColumnDataLoader);
@@ -59,6 +63,9 @@ private:
 		std::string line;
 		while (!mergein.eof()) {
 			std::getline(mergein, line);
+			if (line.size() < 3) {
+				continue;
+			}
 			std::string part1 = line.substr(0, line.find(" "));
 			std::string part2 = line.substr(line.find(" ") + 1);
 			data_stream_loc loc;
@@ -84,6 +91,86 @@ public:
 
 	std::vector<data_stream_loc>::iterator streams_end() {
 		return locs.end();
+	}
+
+	valuet read_value(boost::filesystem::ifstream &ifs, int streamwidth) {
+		valuet v;
+		int8_t r1;
+		int16_t r2;
+		int32_t r4;
+		int64_t r8;
+		switch (streamwidth) {
+		case 1:
+			ifs.read(reinterpret_cast<streamt*>(&r1), 1);
+			v = r1;
+			break;
+		case 2:
+			ifs.read(reinterpret_cast<streamt*>(&r2), 2);
+			v = r2;
+			break;
+		case 4:
+			ifs.read(reinterpret_cast<streamt*>(&r4), 4);
+			v = r4;
+			break;
+		case 8:
+			ifs.read(reinterpret_cast<streamt*>(&r8), 8);
+			v = r8;
+			break;
+		default:
+			ERROR("unsupported stream width:" << streamwidth);
+		}
+		return v;
+	}
+
+	/**
+	 * @param loc ts/vs loc of the data stream
+	 * @param loc_id id to associate with the loc
+	 * @param vwidth value width
+	 */
+	std::vector<pointt> read_stream_fully(
+			data_stream_loc loc,
+			streamid loc_id,
+			int twidth=4,
+			int vwidth=4) {
+		boost::filesystem::ifstream ints(loc.tsfile, std::ios_base::in | std::ios_base::binary);
+		boost::filesystem::ifstream invs(loc.vsfile, std::ios_base::in | std::ios_base::binary);
+
+		uintmax_t ints_size = boost::filesystem::file_size(loc.tsfile);
+		uintmax_t invs_size = boost::filesystem::file_size(loc.vsfile);
+
+		if (ints_size != invs_size) {
+			ERROR("timestamp file size " << loc.tsfile.c_str() <<
+					" not the same as value file size " << loc.vsfile.c_str());
+		}
+
+		std::vector<pointt> points;
+		while (!ints.eof()) {
+			pointt pt;
+			pt.stream = loc_id;
+			pt.t = read_value(ints, twidth);
+			pt.v = read_value(invs, vwidth);
+			points.push_back(pt);
+		}
+
+		return points;
+	}
+
+	std::vector<pointt> to_rows() {
+		std::vector<pointt> rows;
+		streamid id = 0;
+		for (std::vector<data_stream_loc>::iterator sit = streams_begin();
+				sit != streams_end(); sit++) {
+			std::vector<pointt> pts = read_stream_fully(*sit, ++id);
+			rows.insert(rows.end(), pts.begin(), pts.end());
+			for (std::vector<pointt>::iterator it = pts.begin();
+					it != pts.end(); it++) {
+				rows.push_back(*it);
+			}
+		}
+
+		//std::sort(rows.begin(), rows.end(), pointt_timestamp_sort);
+
+		return rows;
 	}
 };
 

@@ -26,6 +26,12 @@ const indext NO_INDEX = -1;
 typedef char streamt;
 const int SIZEMULT = (sizeof(valuet)/sizeof(streamt));
 
+typedef struct {
+	streamid stream;
+	valuet t;
+	valuet v;
+} pointt;
+
 struct dxrange {
 	indext start;
 	indext len;
