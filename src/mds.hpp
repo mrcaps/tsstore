@@ -13,6 +13,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include "encoder/encoder.hpp"
 
@@ -54,25 +56,62 @@ struct streaminfo {
 			encoder(_encoder), sorted(_sorted), index(_index) {
 
 	}
+
+	boost::property_tree::ptree to_ptree() {
+		boost::property_tree::ptree pt;
+		pt.put("id", id);
+		pt.put("loc", loc);
+		pt.put("minindex", minindex);
+		pt.put("maxindex", maxindex);
+		pt.put("encoder", encoder);
+		pt.put("sorted", sorted);
+		pt.put("index.size", index.size());
+		return pt;
+	}
 };
 
 struct streampair {
 	spairid id;
 	boost::shared_ptr<streaminfo> ts;
 	boost::shared_ptr<streaminfo> vs;
+
+	streampair(spairid _id, boost::shared_ptr<streaminfo> _ts, boost::shared_ptr<streaminfo> _vs) :
+		id(_id), ts(_ts), vs(_vs) {
+
+	}
+
+	boost::property_tree::ptree to_ptree() {
+		boost::property_tree::ptree pt;
+		pt.put("id", id);
+		pt.put_child("ts", ts->to_ptree());
+		pt.put_child("vs", vs->to_ptree());
+		return pt;
+	}
 };
 
 class MDS {
 public:
 	streamid lastid;
-	std::map<spairid, streampair> streampairs;
+	std::map<spairid, boost::shared_ptr<streampair> > streampairs;
 	std::map<streamid, boost::shared_ptr<streaminfo> > streaminfos;
 
 	MDS() : lastid(0), streampairs() {
 
 	}
 
-	streampair get_info_pair(spairid id) {
+	boost::property_tree::ptree to_ptree() {
+		boost::property_tree::ptree pt;
+		pt.put("lastid", lastid);
+		for (std::map<spairid, boost::shared_ptr<streampair> >::iterator it = streampairs.begin();
+				it != streampairs.end();
+				it++) {
+			pt.put_child((boost::format("streampair-%d") % it->first).str(), it->second->to_ptree());
+		}
+
+		return pt;
+	}
+
+	boost::shared_ptr<streampair> get_info_pair(spairid id) {
 		boost::filesystem::path basepath("filestore");
 
 		if (streampairs.find(id) == streampairs.end()) {
@@ -103,11 +142,11 @@ public:
 			));
 			streaminfos[vsid] = boost::shared_ptr<streaminfo>(vsinfo);
 
-			streampairs[id] = streampair{
+			streampairs[id] = boost::shared_ptr<streampair>(new streampair(
 				id,
 				boost::shared_ptr<streaminfo>(tsinfo),
 				boost::shared_ptr<streaminfo>(vsinfo)
-			};
+			));
 		}
 
 		return streampairs.at(id);
@@ -124,6 +163,10 @@ public:
 				std::vector<dxpair>()
 				);
 		return info;
+	}
+
+	void print_state() {
+
 	}
 
 	bool update_maxindex(streamid id, indext maxindex) {

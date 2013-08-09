@@ -46,7 +46,6 @@ private:
 public:
 	ValueStream(MDS mds, streamid id, int _bufsize) : info(mds.get_info(id)) {
 		valuestore = boost::shared_ptr<BS>(new BSFile(mds, id));
-		buf.set_capacity(bufsize);
 		init(_bufsize);
 	}
 	ValueStream(streaminfo _info, int _bufsize) : info(_info) {
@@ -127,6 +126,11 @@ public:
 		} else {
 			//other encoders - just store unencoded for now.
 			buf.push_back(val);
+		}
+
+		if (buf.full()) {
+			BOOST_TEST_MESSAGE("full! flushing!");
+			flush();
 		}
 	}
 

@@ -28,7 +28,7 @@ typedef char streamt;
 const int SIZEMULT = (sizeof(valuet)/sizeof(streamt));
 
 typedef struct {
-	streamid stream;
+	spairid stream;
 	valuet t;
 	valuet v;
 } pointt;
