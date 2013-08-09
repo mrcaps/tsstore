@@ -58,7 +58,7 @@ inline void print_vector(std::vector<T> vec) {
 
 #undef DEBUG
 #ifdef DEBUG_BUILD
-#  define DEBUG(x) std::cout << x << std::endl;
+#  define DEBUG(x) std::cerr << x << std::endl;
 #else
 #  define DEBUG(x)
 #endif
@@ -67,7 +67,7 @@ inline void print_vector(std::vector<T> vec) {
 
 #undef VERBOSE
 #ifdef VERBOSE_BUILD
-#  define INFO(x) std::cout << x << std::endl;
+#  define INFO(x) std::cerr << x << std::endl;
 #else
 #  define INFO(x)
 #endif

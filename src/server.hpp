@@ -43,7 +43,7 @@ public:
 	boost::shared_ptr<ValueStream> get_stream(streamid id) {
 		if (streams.find(id) == streams.end()) {
 			//instantiate stream
-			streams[id] = boost::shared_ptr<ValueStream>(new ValueStream(mds, id, 1024));
+			streams[id] = boost::shared_ptr<ValueStream>(new ValueStream(boost::shared_ptr<MDS>(&mds), id, 1024));
 		}
 
 		return streams.at(id);

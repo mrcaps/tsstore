@@ -44,7 +44,8 @@ private:
 	}
 
 public:
-	ValueStream(MDS mds, streamid id, int _bufsize) : info(mds.get_info(id)) {
+	ValueStream(boost::shared_ptr<MDS> mds, streamid id, int _bufsize) :
+		info(mds->get_info(id)) {
 		valuestore = boost::shared_ptr<BS>(new BSFile(mds, id));
 		init(_bufsize);
 	}
@@ -129,7 +130,6 @@ public:
 		}
 
 		if (buf.full()) {
-			BOOST_TEST_MESSAGE("full! flushing!");
 			flush();
 		}
 	}
