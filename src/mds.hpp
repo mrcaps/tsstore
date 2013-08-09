@@ -117,8 +117,7 @@ public:
 		if (streampairs.find(id) == streampairs.end()) {
 			//make new stream pair
 			streamid tsid = lastid++;
-			boost::shared_ptr<streaminfo> tsinfo =
-					boost::shared_ptr<streaminfo>(new streaminfo(
+			boost::shared_ptr<streaminfo> tsinfo(new streaminfo(
 				lastid,
 				(basepath / boost::filesystem::path((boost::format("%1%.stream") % lastid).str())).string(),
 				0,
@@ -130,8 +129,7 @@ public:
 			streaminfos[tsid] = boost::shared_ptr<streaminfo>(tsinfo);
 
 			streamid vsid = lastid++;
-			boost::shared_ptr<streaminfo> vsinfo =
-					boost::shared_ptr<streaminfo>(new streaminfo(
+			boost::shared_ptr<streaminfo> vsinfo(new streaminfo(
 				lastid,
 				(basepath / boost::filesystem::path((boost::format("%1%.stream") % lastid).str())).string(),
 				0,
@@ -144,8 +142,8 @@ public:
 
 			streampairs[id] = boost::shared_ptr<streampair>(new streampair(
 				id,
-				boost::shared_ptr<streaminfo>(tsinfo),
-				boost::shared_ptr<streaminfo>(vsinfo)
+				tsinfo,
+				vsinfo
 			));
 		}
 
@@ -178,7 +176,6 @@ public:
 		DEBUG("updating index id=" << id);
 		return true;
 	}
-
 };
 
 
