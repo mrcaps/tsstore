@@ -37,8 +37,6 @@ BOOST_AUTO_TEST_CASE( to_rows_test ) {
 
 		++npoints;
 	}
-
-	BOOST_TEST_MESSAGE("npoints=" << npoints);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -18,6 +18,7 @@
    void operator=(const TypeName&)
 
 typedef uint64_t streamid;
+typedef uint64_t spairid;
 typedef int64_t valuet;
 typedef int64_t indext;
 typedef int64_t filepost;

@@ -138,12 +138,13 @@ public:
 		uintmax_t ints_size = boost::filesystem::file_size(loc.tsfile);
 		uintmax_t invs_size = boost::filesystem::file_size(loc.vsfile);
 
-		if (ints_size != invs_size) {
+		if (ints_size * twidth != invs_size * vwidth) {
 			ERROR("timestamp file size " << loc.tsfile.c_str() <<
 					" not the same as value file size " << loc.vsfile.c_str());
 		}
 
 		std::vector<pointt> points;
+		points.reserve(ints_size / twidth + 1);
 		while (!ints.eof()) {
 			pointt pt;
 			pt.stream = loc_id;

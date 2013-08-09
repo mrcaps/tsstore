@@ -81,12 +81,10 @@ private:
 	}
 
 public:
-	BSFile(MDS mds, streamid id) {
-		info = mds.get_info(id);
+	BSFile(MDS mds, streamid id) : info(mds.get_info(id)) {
 		init(info);
 	}
-	BSFile(streaminfo _info) {
-		info = _info;
+	BSFile(streaminfo _info) : info(_info) {
 		init(info);
 	}
 	~BSFile() {};

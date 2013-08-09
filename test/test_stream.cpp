@@ -18,14 +18,15 @@
 
 streaminfo get_temp_bs(bool sorted, encodert encoder) {
 	static streamid id = 1;
-	streaminfo info;
-	info.id = ++id;
-	info.loc = TMP_PATH().generic_string();
-	info.minindex = 0;
-	info.maxindex = 0;
-	info.index = std::vector<dxpair>();
-	info.sorted = sorted;
-	info.encoder = encoder;
+	streaminfo info(
+		++id,
+		TMP_PATH().generic_string(),
+		0,
+		0,
+		encoder,
+		sorted,
+		std::vector<dxpair>()
+	);
 	return info;
 }
 

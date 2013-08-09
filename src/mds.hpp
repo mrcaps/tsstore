@@ -9,6 +9,10 @@
 #define MDS_HPP_
 
 #include <string>
+#include <map>
+#include <boost/shared_ptr.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/format.hpp>
 
 #include "encoder/encoder.hpp"
 
@@ -35,7 +39,7 @@ inline bool compare_dxpair_list_val(dxpair fst, dxpair snd) {
 	return fst.val < snd.val;
 }
 
-typedef struct {
+struct streaminfo {
 	streamid id; //unique id
 	std::string loc; //stream location (e.g., path)
 	indext minindex; //min value index
@@ -43,18 +47,82 @@ typedef struct {
 	encodert encoder; //stream encoder
 	bool sorted;
 	dxpair_list index;
-} streaminfo;
+
+	streaminfo(streamid _id, std::string _loc, indext _minindex, indext _maxindex,
+			encodert _encoder, bool _sorted, dxpair_list _index) :
+			id(_id), loc(_loc), minindex(_minindex), maxindex(_maxindex),
+			encoder(_encoder), sorted(_sorted), index(_index) {
+
+	}
+};
+
+struct streampair {
+	spairid id;
+	boost::shared_ptr<streaminfo> ts;
+	boost::shared_ptr<streaminfo> vs;
+};
 
 class MDS {
 public:
+	streamid lastid;
+	std::map<spairid, streampair> streampairs;
+	std::map<streamid, boost::shared_ptr<streaminfo> > streaminfos;
+
+	MDS() : lastid(0), streampairs() {
+
+	}
+
+	streampair get_info_pair(spairid id) {
+		boost::filesystem::path basepath("filestore");
+
+		if (streampairs.find(id) == streampairs.end()) {
+			//make new stream pair
+			streamid tsid = lastid++;
+			boost::shared_ptr<streaminfo> tsinfo =
+					boost::shared_ptr<streaminfo>(new streaminfo(
+				lastid,
+				(basepath / boost::filesystem::path((boost::format("%1%.stream") % lastid).str())).string(),
+				0,
+				0,
+				DELTARLE,
+				true,
+				std::vector<dxpair>()
+			));
+			streaminfos[tsid] = boost::shared_ptr<streaminfo>(tsinfo);
+
+			streamid vsid = lastid++;
+			boost::shared_ptr<streaminfo> vsinfo =
+					boost::shared_ptr<streaminfo>(new streaminfo(
+				lastid,
+				(basepath / boost::filesystem::path((boost::format("%1%.stream") % lastid).str())).string(),
+				0,
+				0,
+				NONE,
+				false,
+				std::vector<dxpair>()
+			));
+			streaminfos[vsid] = boost::shared_ptr<streaminfo>(vsinfo);
+
+			streampairs[id] = streampair{
+				id,
+				boost::shared_ptr<streaminfo>(tsinfo),
+				boost::shared_ptr<streaminfo>(vsinfo)
+			};
+		}
+
+		return streampairs.at(id);
+	}
+
 	streaminfo get_info(streamid id) {
-		streaminfo info;
-		info.id = id;
-		info.loc = std::string("foobar");
-		info.minindex = 0;
-		info.maxindex = 1000;
-		info.sorted = false;
-		info.index = std::vector<dxpair>();
+		streaminfo info(
+				id,
+				std::string("FIXME"),
+				0,
+				1000,
+				NONE,
+				false,
+				std::vector<dxpair>()
+				);
 		return info;
 	}
 
