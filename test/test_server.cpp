@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE( server_test ) {
 	server.add_points(rows);
 
 	boost::property_tree::json_parser::write_json(std::cerr,
-			server.get_mds().to_ptree(),
+			server.get_mds_ref()->to_ptree(),
 			true);
 	std::cerr << "SERVER TEST!!!" << std::endl;
 }

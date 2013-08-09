@@ -45,7 +45,7 @@ private:
 
 public:
 	ValueStream(boost::shared_ptr<MDS> mds, streamid id, int _bufsize) :
-		info(mds->get_info(id)) {
+		info(*mds->get_info(id)) {
 		valuestore = boost::shared_ptr<BS>(new BSFile(mds, id));
 		init(_bufsize);
 	}

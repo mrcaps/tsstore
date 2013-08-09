@@ -21,12 +21,11 @@ private:
 	std::map<streamid, boost::shared_ptr<ValueStream> > streams;
 
 public:
-	TSServer() {
-		mds = MDS();
+	TSServer() : mds() {
 	}
 
-	MDS get_mds() {
-		return mds;
+	MDS* get_mds_ref() {
+		return &mds;
 	}
 
 	void add_points(std::vector<pointt> rows) {

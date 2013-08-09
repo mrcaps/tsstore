@@ -25,13 +25,13 @@ struct dxpair {
 	valuet val; //value at the location
 
 	friend std::ostream& operator<<(std::ostream &os, dxpair &p) {
-		return os <<
-				"dxpair{dx=" << p.dx <<
-				" fpos=" << p.fpos <<
-				" val=" << p.val << "}";
+		return os << "dxpair{dx=" << p.dx << " fpos=" << p.fpos << " val="
+				<< p.val << "}";
 	}
 
-	dxpair(indext _dx, filepost _fpos, valuet _val) : dx(_dx), fpos(_fpos), val(_val) {}
+	dxpair(indext _dx, filepost _fpos, valuet _val) :
+			dx(_dx), fpos(_fpos), val(_val) {
+	}
 };
 typedef std::vector<dxpair> dxpair_list;
 inline bool compare_dxpair_list_dx(dxpair fst, dxpair snd) {
@@ -50,10 +50,11 @@ struct streaminfo {
 	bool sorted;
 	dxpair_list index;
 
-	streaminfo(streamid _id, std::string _loc, indext _minindex, indext _maxindex,
-			encodert _encoder, bool _sorted, dxpair_list _index) :
-			id(_id), loc(_loc), minindex(_minindex), maxindex(_maxindex),
-			encoder(_encoder), sorted(_sorted), index(_index) {
+	streaminfo(streamid _id, std::string _loc, indext _minindex,
+			indext _maxindex, encodert _encoder, bool _sorted,
+			dxpair_list _index) :
+			id(_id), loc(_loc), minindex(_minindex), maxindex(_maxindex), encoder(
+					_encoder), sorted(_sorted), index(_index) {
 
 	}
 
@@ -75,8 +76,9 @@ struct streampair {
 	boost::shared_ptr<streaminfo> ts;
 	boost::shared_ptr<streaminfo> vs;
 
-	streampair(spairid _id, boost::shared_ptr<streaminfo> _ts, boost::shared_ptr<streaminfo> _vs) :
-		id(_id), ts(_ts), vs(_vs) {
+	streampair(spairid _id, boost::shared_ptr<streaminfo> _ts,
+			boost::shared_ptr<streaminfo> _vs) :
+			id(_id), ts(_ts), vs(_vs) {
 
 	}
 
@@ -89,23 +91,37 @@ struct streampair {
 	}
 };
 
+typedef std::pair<streamid, boost::shared_ptr<streaminfo> > streaminfos_T;
+inline std::ostream &operator<<(std::ostream &os, streaminfos_T const &t) {
+    boost::property_tree::json_parser::write_json(
+    		os,
+    		t.second->to_ptree(),
+    		true);
+    return os;
+}
+
 class MDS {
+private:
+	DISALLOW_EVIL_CONSTRUCTORS(MDS);
+
 public:
 	streamid lastid;
 	std::map<spairid, boost::shared_ptr<streampair> > streampairs;
 	std::map<streamid, boost::shared_ptr<streaminfo> > streaminfos;
 
-	MDS() : lastid(0), streampairs() {
-
+	MDS() : lastid(0), streampairs(), streaminfos() {
+		std::cerr << "MDS ctor" << std::endl;
+		std::cerr << "streaminfos @" << &streaminfos << std::endl;
+		std::cerr << "streaminfos size=" << streaminfos.size() << std::endl;
 	}
 
 	boost::property_tree::ptree to_ptree() {
 		boost::property_tree::ptree pt;
 		pt.put("lastid", lastid);
-		for (std::map<spairid, boost::shared_ptr<streampair> >::iterator it = streampairs.begin();
-				it != streampairs.end();
-				it++) {
-			pt.put_child((boost::format("streampair-%d") % it->first).str(), it->second->to_ptree());
+		for (std::map<spairid, boost::shared_ptr<streampair> >::iterator it =
+				streampairs.begin(); it != streampairs.end(); it++) {
+			pt.put_child((boost::format("streampair-%d") % it->first).str(),
+					it->second->to_ptree());
 		}
 
 		return pt;
@@ -115,52 +131,48 @@ public:
 		boost::filesystem::path basepath("filestore");
 
 		if (streampairs.find(id) == streampairs.end()) {
+			std::cerr << "create new stream id=" << id << std::endl;
 			//make new stream pair
 			streamid tsid = lastid++;
-			boost::shared_ptr<streaminfo> tsinfo(new streaminfo(
-				lastid,
-				(basepath / boost::filesystem::path((boost::format("%1%.stream") % lastid).str())).string(),
-				0,
-				0,
-				DELTARLE,
-				true,
-				std::vector<dxpair>()
-			));
-			streaminfos[tsid] = boost::shared_ptr<streaminfo>(tsinfo);
+			boost::shared_ptr<streaminfo> tsinfo(
+					new streaminfo(lastid,
+							(basepath / boost::filesystem::path((boost::format("%1%.stream") % lastid).str())).string(),
+							0,
+							0,
+							DELTARLE,
+							true,
+							std::vector<dxpair>()
+							));
+			streaminfos[tsid] = tsinfo;
 
 			streamid vsid = lastid++;
-			boost::shared_ptr<streaminfo> vsinfo(new streaminfo(
-				lastid,
-				(basepath / boost::filesystem::path((boost::format("%1%.stream") % lastid).str())).string(),
-				0,
-				0,
-				NONE,
-				false,
-				std::vector<dxpair>()
-			));
-			streaminfos[vsid] = boost::shared_ptr<streaminfo>(vsinfo);
+			boost::shared_ptr<streaminfo> vsinfo(
+					new streaminfo(lastid,
+							(basepath / boost::filesystem::path((boost::format("%1%.stream") % lastid).str())).string(),
+							0,
+							0,
+							NONE,
+							false,
+							std::vector<dxpair>()
+							));
+			streaminfos[vsid] = vsinfo;
 
-			streampairs[id] = boost::shared_ptr<streampair>(new streampair(
-				id,
-				tsinfo,
-				vsinfo
-			));
+			streampairs[id] = boost::shared_ptr<streampair>(
+					new streampair(id, tsinfo, vsinfo));
 		}
 
 		return streampairs.at(id);
 	}
 
-	streaminfo get_info(streamid id) {
-		streaminfo info(
-				id,
-				std::string("FIXME"),
-				0,
-				1000,
-				NONE,
-				false,
-				std::vector<dxpair>()
-				);
-		return info;
+	boost::shared_ptr<streaminfo> get_info(streamid id) {
+		std::cerr << "streaminfos @" << &streaminfos << std::endl;
+		std::cerr << "streaminfos size=" << streaminfos.size() << std::endl;
+		//std::copy(streaminfos.begin(), streaminfos.end(), std::ostream_iterator<streaminfos_T>(std::cout));
+		//streaminfos.find(id);
+		if (streaminfos.find(id) == streaminfos.end()) {
+			ERROR("NO STREAMINFO FOR ID " << id);
+		}
+		return streaminfos.at(id);
 	}
 
 	void print_state() {
@@ -177,6 +189,5 @@ public:
 		return true;
 	}
 };
-
 
 #endif /* MDS_HPP_ */
