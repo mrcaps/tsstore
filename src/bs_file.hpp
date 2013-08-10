@@ -81,7 +81,7 @@ private:
 	}
 
 public:
-	BSFile(boost::shared_ptr<MDS> _mds, streamid id) : info(*mds->get_info(id)), mds(_mds) {
+	BSFile(boost::shared_ptr<MDS> _mds, streamid id) : info(*(_mds->get_info(id))), mds(_mds) {
 		init(info);
 	}
 	BSFile(streaminfo _info) : info(_info) {

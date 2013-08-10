@@ -93,6 +93,7 @@ struct streampair {
 
 typedef std::pair<streamid, boost::shared_ptr<streaminfo> > streaminfos_T;
 inline std::ostream &operator<<(std::ostream &os, streaminfos_T const &t) {
+	os << "id " << t.first << ":";
     boost::property_tree::json_parser::write_json(
     		os,
     		t.second->to_ptree(),
@@ -111,8 +112,6 @@ public:
 
 	MDS() : lastid(0), streampairs(), streaminfos() {
 		std::cerr << "MDS ctor" << std::endl;
-		std::cerr << "streaminfos @" << &streaminfos << std::endl;
-		std::cerr << "streaminfos size=" << streaminfos.size() << std::endl;
 	}
 
 	boost::property_tree::ptree to_ptree() {
@@ -133,9 +132,9 @@ public:
 		if (streampairs.find(id) == streampairs.end()) {
 			std::cerr << "create new stream id=" << id << std::endl;
 			//make new stream pair
-			streamid tsid = lastid++;
+			streamid tsid = ++lastid;
 			boost::shared_ptr<streaminfo> tsinfo(
-					new streaminfo(lastid,
+					new streaminfo(tsid,
 							(basepath / boost::filesystem::path((boost::format("%1%.stream") % lastid).str())).string(),
 							0,
 							0,
@@ -145,9 +144,9 @@ public:
 							));
 			streaminfos[tsid] = tsinfo;
 
-			streamid vsid = lastid++;
+			streamid vsid = ++lastid;
 			boost::shared_ptr<streaminfo> vsinfo(
-					new streaminfo(lastid,
+					new streaminfo(vsid,
 							(basepath / boost::filesystem::path((boost::format("%1%.stream") % lastid).str())).string(),
 							0,
 							0,
@@ -165,12 +164,11 @@ public:
 	}
 
 	boost::shared_ptr<streaminfo> get_info(streamid id) {
-		std::cerr << "streaminfos @" << &streaminfos << std::endl;
-		std::cerr << "streaminfos size=" << streaminfos.size() << std::endl;
-		//std::copy(streaminfos.begin(), streaminfos.end(), std::ostream_iterator<streaminfos_T>(std::cout));
-		//streaminfos.find(id);
+		//std::cerr << "streaminfos @" << &streaminfos << std::endl;
+		//std::cerr << "streaminfos size=" << streaminfos.size() << std::endl;
+		//std::copy(streaminfos.begin(), streaminfos.end(), std::ostream_iterator<streaminfos_T>(std::cerr));
 		if (streaminfos.find(id) == streaminfos.end()) {
-			ERROR("NO STREAMINFO FOR ID " << id);
+			ERROR("No streaminfo for streamid=" << id);
 		}
 		return streaminfos.at(id);
 	}
