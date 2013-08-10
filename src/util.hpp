@@ -27,38 +27,6 @@ const indext NO_INDEX = -1;
 typedef char streamt;
 const int SIZEMULT = (sizeof(valuet)/sizeof(streamt));
 
-typedef struct {
-	spairid stream;
-	valuet t;
-	valuet v;
-} pointt;
-
-/**
- * Range query result
- */
-typedef struct {
-	std::vector<valuet> ts;
-	std::vector<valuet> vs;
-	indext npoints;
-} qres;
-
-struct dxrange {
-	indext start;
-	indext len;
-
-	dxrange() : start(0), len(0) {}
-	dxrange(indext _start, indext _len) : start(_start), len(_len) {}
-};
-
-template<typename T>
-inline void print_vector(std::vector<T> vec) {
-	std::cout << "[";
-	for (typename std::vector<T>::iterator it = vec.begin(); it != vec.end(); it++) {
-		std::cout << *it << " ";
-	}
-	std::cout << "]";
-}
-
 #undef TMP_PATH
 #define TMP_PATH() \
 	(boost::filesystem::unique_path("_%%%%-%%%%-%%%%.tmp"))
@@ -82,5 +50,52 @@ inline void print_vector(std::vector<T> vec) {
 #endif
 
 #define ERROR(x) std::cerr << x << std::endl;
+
+typedef struct {
+	spairid stream;
+	valuet t;
+	valuet v;
+} pointt;
+
+/**
+ * Range query result
+ */
+typedef struct {
+	std::vector<valuet> ts;
+	std::vector<valuet> vs;
+	indext npoints;
+} qres;
+
+inline bool qres_equal(qres qr1, qres qr2) {
+	if (qr1.npoints != qr2.npoints) {
+		ERROR("qr1 npoints=" << qr1.npoints << " != qr2 npoints=" << qr2.npoints);
+		return false;
+	}
+	for (indext i = 0; i < qr1.npoints; ++i) {
+		if ((qr1.ts[i] != qr2.ts[i]) || (qr1.vs[i] != qr2.vs[i])) {
+			ERROR("qres not equal @ index " << i);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+struct dxrange {
+	indext start;
+	indext len;
+
+	dxrange() : start(0), len(0) {}
+	dxrange(indext _start, indext _len) : start(_start), len(_len) {}
+};
+
+template<typename T>
+inline void print_vector(std::vector<T> vec) {
+	std::cout << "[";
+	for (typename std::vector<T>::iterator it = vec.begin(); it != vec.end(); it++) {
+		std::cout << *it << " ";
+	}
+	std::cout << "]";
+}
 
 #endif /* UTIL_HPP_ */

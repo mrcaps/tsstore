@@ -16,9 +16,9 @@
 #include "../src/stream.hpp"
 #include "data.hpp"
 
-streaminfo get_temp_bs(bool sorted, encodert encoder) {
+boost::shared_ptr<streaminfo> get_temp_bs(bool sorted, encodert encoder) {
 	static streamid id = 1;
-	streaminfo info(
+	boost::shared_ptr<streaminfo> info(new streaminfo(
 		++id,
 		TMP_PATH().generic_string(),
 		0,
@@ -26,14 +26,14 @@ streaminfo get_temp_bs(bool sorted, encodert encoder) {
 		encoder,
 		sorted,
 		std::vector<dxpair>()
-	);
+	));
 	return info;
 }
 
 BOOST_AUTO_TEST_SUITE( stream_test_suite )
 
 BOOST_AUTO_TEST_CASE( basic_test ) {
-	streaminfo info = get_temp_bs(false, NONE);
+	boost::shared_ptr<streaminfo> info = get_temp_bs(false, NONE);
 
 	ValueStream vs(info, 100);
 
@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE( basic_test ) {
 }
 
 BOOST_AUTO_TEST_CASE( index_test ) {
-	streaminfo info = get_temp_bs(true, NONE);
+	boost::shared_ptr<streaminfo> info = get_temp_bs(true, NONE);
 
 	ValueStream vs(info, 100);
 
@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE( index_test ) {
 }
 
 BOOST_AUTO_TEST_CASE( delta_rle_test ) {
-	streaminfo info = get_temp_bs(true, DELTARLE);
+	boost::shared_ptr<streaminfo> info = get_temp_bs(true, DELTARLE);
 
 	ValueStream vs(info, 100);
 

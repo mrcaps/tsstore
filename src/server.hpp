@@ -40,6 +40,31 @@ public:
 		}
 	}
 
+	qres query(spairid sid, valuet tstart, valuet tend) {
+		boost::shared_ptr<streampair> pair = mds->get_info_pair(sid);
+		//find index range
+		qres qr;
+		qr.ts = std::vector<valuet>();
+		qr.vs = std::vector<valuet>();
+
+		boost::shared_ptr<ValueStream> tstream = get_stream(pair->ts->id);
+		indext istart = tstream->index(tstart);
+		indext iend = tstream->index(tend);
+		indext npts = iend - istart;
+		qr.npoints = npts;
+		qr.ts.reserve(npts);
+		qr.vs.reserve(npts);
+		dxrange req;
+		req.start = istart;
+		req.len = npts;
+		tstream->read(&(*qr.ts.begin()), req);
+
+		boost::shared_ptr<ValueStream> vstream = get_stream(pair->vs->id);
+		vstream->read(&(*qr.vs.begin()), req);
+
+		return qr;
+	}
+
 	boost::shared_ptr<ValueStream> get_stream(streamid id) {
 		if (streams.find(id) == streams.end()) {
 			//instantiate stream

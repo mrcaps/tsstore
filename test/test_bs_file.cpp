@@ -19,14 +19,14 @@
 BOOST_AUTO_TEST_SUITE( bs_file_test_suite )
 
 BOOST_AUTO_TEST_CASE( basic_test ) {
-	streaminfo info(
+	boost::shared_ptr<streaminfo> info(new streaminfo(
 			1,
 			TMP_PATH().generic_string(),
 			0,
 			0,
 			NONE,
 			false,
-			std::vector<dxpair>());
+			std::vector<dxpair>()));
 	BSFile bs(info);
 
 	int npts = 1000;
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE( encoders_test ) {
 
 	for (unsigned int etdx = 0;
 			etdx < sizeof(encodert_values)/sizeof(encodert); ++etdx) {
-		streaminfo info(
+		boost::shared_ptr<streaminfo> info(new streaminfo(
 			++sid,
 			TMP_PATH().generic_string(),
 			0,
@@ -61,9 +61,9 @@ BOOST_AUTO_TEST_CASE( encoders_test ) {
 			encodert_values[etdx],
 			false,
 			std::vector<dxpair>()
-		);
+		));
 
-		BOOST_TEST_MESSAGE("Testing encoder " << info.encoder);
+		BOOST_TEST_MESSAGE("Testing encoder " << info->encoder);
 
 		ValueStream vs(info, 1000);
 

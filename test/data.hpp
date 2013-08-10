@@ -150,7 +150,9 @@ public:
 			pt.stream = loc_id;
 			pt.t = read_value(ints, twidth);
 			pt.v = read_value(invs, vwidth);
-			points.push_back(pt);
+			if (!ints.eof()) {
+				points.push_back(pt);
+			}
 		}
 
 		return points;
@@ -180,12 +182,18 @@ public:
 		qr.vs.reserve(invs_size / vwidth + 1);
 		indext dx = 0;
 		while (!ints.eof()) {
-			qr.ts[dx] = read_value(ints, twidth);
+			valuet val = read_value(ints, twidth);
+			if (!ints.eof()) {
+				qr.ts[dx] = val;
+			}
 			++dx;
 		}
 		dx = 0;
 		while (!invs.eof()) {
-			qr.vs[dx] = read_value(invs, vwidth);
+			valuet val = read_value(invs, vwidth);
+			if (!invs.eof()) {
+				qr.vs[dx] = val;
+			}
 			++dx;
 		}
 

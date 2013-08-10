@@ -22,7 +22,7 @@
 class BSFile : public BS {
 private:
 	DISALLOW_EVIL_CONSTRUCTORS(BSFile);
-	streaminfo info;
+	boost::shared_ptr<streaminfo> info;
 	boost::filesystem::basic_fstream<streamt> fs;
 	//seek pointers for put and get on basic_fstream are not the same.
 	filepost fs_ploc;
@@ -31,8 +31,8 @@ private:
 	boost::filesystem::path stream_path;
 	boost::shared_ptr<MDS> mds;
 
-	void init(streaminfo &info) {
-		stream_path = boost::filesystem::path(info.loc);
+	void init(boost::shared_ptr<streaminfo> &info) {
+		stream_path = boost::filesystem::path(info->loc);
 	}
 
 	void check_open() {
@@ -81,10 +81,10 @@ private:
 	}
 
 public:
-	BSFile(boost::shared_ptr<MDS> _mds, streamid id) : info(*(_mds->get_info(id))), mds(_mds) {
+	BSFile(boost::shared_ptr<MDS> _mds, streamid id) : info(_mds->get_info(id)), mds(_mds) {
 		init(info);
 	}
-	BSFile(streaminfo _info) : info(_info) {
+	BSFile(boost::shared_ptr<streaminfo> _info) : info(_info) {
 		init(info);
 	}
 	~BSFile() {};
@@ -103,14 +103,14 @@ public:
 
 		filepost prevtail = get_tail_pos();
 
-		if (info.encoder == NONE) {
+		if (info->encoder == NONE) {
 			//direct write
 			fs_write(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
 		} else {
-			if (info.encoder == DELTARLE) {
+			if (info->encoder == DELTARLE) {
 				//TODO: variable-width encode?
 				fs_write(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
-			} else if (info.encoder == ZLIB) {
+			} else if (info->encoder == ZLIB) {
 				//TODO: use a chunk size that isn't the size of the flush?
 				// (note that deflate() needs an intermediate buffer anyway,
 				//	so this shouldn't be too horrible)
@@ -126,17 +126,17 @@ public:
 		// /       /        /
 		// |-------|--------
 		//
-		info.index.push_back(dxpair(info.maxindex, prevtail, pts[0]));
+		info->index.push_back(dxpair(info->maxindex, prevtail, pts[0]));
 
 		fs.flush();
-		info.maxindex += ndecpts;
+		info->maxindex += ndecpts;
 
 		if (mds) {
 			//update metadata on flush
-			mds->update_maxindex(info.id, info.maxindex);
-			mds->update_index(info.id, info.index);
+			mds->update_maxindex(info->id, info->maxindex);
+			mds->update_index(info->id, info->index);
 		} else {
-			INFO("No MDS to update in stream id=" << info.id)
+			INFO("No MDS to update in stream id=" << info->id)
 		}
 
 		return (!fs.fail());
@@ -149,7 +149,7 @@ public:
 	read_result read_raw(dxrange req) {
 		read_result rr;
 		rr.blocks = std::vector<value_block>();
-		if (info.encoder == NONE) {
+		if (info->encoder == NONE) {
 			value_block vb;
 			vb.data = boost::shared_array<streamt>(new streamt[req.len*SIZEMULT]);
 			vb.encoder = NONE;
@@ -161,14 +161,14 @@ public:
 			//upper_bound: first element which compares greater than val
 			//	(furthermost into which search key can be inserted w/o violating ordering)
 			dxpair_list::iterator it = std::upper_bound(
-					info.index.begin(), info.index.end(),
+					info->index.begin(), info->index.end(),
 					dxpair(req.start, 0, 0), compare_dxpair_list_dx);
 			//might need to step one block before upper_bound
-			if (info.index.size() > 0) {
+			if (info->index.size() > 0) {
 				it -= 1;
 			}
 
-			while (it != info.index.end()) {
+			while (it != info->index.end()) {
 				std::pair<indext, filepost> dim = get_block_dim(it);
 				if (!is_block_in_range(it->dx, dim.first, req.start, req.len)) {
 					break;
@@ -180,7 +180,7 @@ public:
 				fs_seekg(it->fpos);
 				fs_read(vb.data.get(), dim.second);
 				vb.data_len = dim.second;
-				vb.encoder = info.encoder;
+				vb.encoder = info->encoder;
 				vb.range = dxrange(it->dx, dim.first);
 				rr.blocks.push_back(vb);
 
@@ -198,10 +198,10 @@ public:
 	 */
 	std::pair<indext, filepost> get_block_dim(dxpair_list::iterator p) {
 		//number of points in block
-		indext pts_in_block = info.maxindex - p->dx;
+		indext pts_in_block = info->maxindex - p->dx;
 		//size of data in block
 		filepost blocksize = get_tail_pos() - p->fpos;
-		if (p + 1 != info.index.end()) {
+		if (p + 1 != info->index.end()) {
 			pts_in_block = (p+1)->dx - p->dx;
 			blocksize = (p+1)->fpos - p->fpos;
 		}
@@ -264,17 +264,17 @@ public:
 	}
 
 	dxrange read(valuet *pts, dxrange req, bool exact=true) {
-		if (info.encoder == NONE) {
+		if (info->encoder == NONE) {
 			//direct seek if we have no encoder
-			if (req.start > info.maxindex) {
+			if (req.start > info->maxindex) {
 				return dxrange(req.start, 0);
 			}
-			indext dxmin = std::max(req.start, info.minindex);
+			indext dxmin = std::max(req.start, info->minindex);
 			indext npts = std::min(static_cast<indext>(req.len),
-					(info.maxindex - info.minindex) - dxmin);
+					(info->maxindex - info->minindex) - dxmin);
 
 			check_open();
-			fs_seekg(SIZEMULT*(dxmin - info.minindex));
+			fs_seekg(SIZEMULT*(dxmin - info->minindex));
 			fs_read(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
 			if (fs.fail()) {
 				return dxrange(req.start, 0);
@@ -340,16 +340,16 @@ public:
 	}
 
 	indext index(valuet pt) {
-		if (info.encoder == NONE) {
-			if (info.sorted) {
+		if (info->encoder == NONE) {
+			if (info->sorted) {
 				//binary search
-				indext lo = info.minindex;
-				indext hi = info.maxindex;
+				indext lo = info->minindex;
+				indext hi = info->maxindex;
 				indext mid = 0;
 				valuet cur = 0;
 				while (lo <= hi) {
 					mid = (lo + hi) / 2;
-					fs_seekg(SIZEMULT*(mid - info.minindex));
+					fs_seekg(SIZEMULT*(mid - info->minindex));
 					fs_read(reinterpret_cast<streamt*>(&cur), SIZEMULT*1);
 					if (cur > pt) {
 						hi = mid - 1;
@@ -365,8 +365,8 @@ public:
 				//unsorted, unindexed: we need to scan.
 				const indext BUFSIZE = 1024;
 				valuet buf[BUFSIZE];
-				for (indext dx = info.minindex; dx < info.maxindex; dx += BUFSIZE) {
-					int npts = std::min(BUFSIZE, info.maxindex - dx);
+				for (indext dx = info->minindex; dx < info->maxindex; dx += BUFSIZE) {
+					int npts = std::min(BUFSIZE, info->maxindex - dx);
 					read(buf, dxrange(dx, npts));
 					//scan the buffer
 					for (int i = 0; i < npts; ++i) {
@@ -380,19 +380,19 @@ public:
 			}
 		} else {
 			//TODO: index for encoded blocks
-			if (info.sorted) {
+			if (info->sorted) {
 				//find the index point
 				//upper_bound: first element which compares greater than val
 				//	(furthermost into which search key can be inserted w/o violating ordering)
 				dxpair_list::iterator it = std::upper_bound(
-						info.index.begin(), info.index.end(),
+						info->index.begin(), info->index.end(),
 						dxpair(0, 0, pt), compare_dxpair_list_val);
 				//might need to step one block before upper_bound
-				if (info.index.size() > 0) {
+				if (info->index.size() > 0) {
 					it -= 1;
 				}
 
-				while (it != info.index.end()) {
+				while (it != info->index.end()) {
 					std::pair<indext, filepost> dim = get_block_dim(it);
 
 					//for now, do nothing cleverer than just decode-and-scan
@@ -404,7 +404,7 @@ public:
 					fs_seekg(it->fpos);
 					fs_read(vb.data.get(), dim.second);
 					vb.data_len = dim.second;
-					vb.encoder = info.encoder;
+					vb.encoder = info->encoder;
 					vb.range = dxrange(it->dx, dim.first);
 
 					boost::scoped_array<valuet> decvals(new valuet[dim.first]);
@@ -427,7 +427,7 @@ public:
 	}
 
 	indext get_maxindex() {
-		return info.maxindex;
+		return info->maxindex;
 	}
 };
 

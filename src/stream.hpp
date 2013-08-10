@@ -33,7 +33,7 @@ private:
 	boost::mutex mutex;
 	valuet lastvalue;
 	indext values_in_buffer; //size of buffer if encoded
-	streaminfo info;
+	boost::shared_ptr<streaminfo> info;
 
 	void init(int _bufsize) {
 		bufsize = _bufsize;
@@ -45,11 +45,11 @@ private:
 
 public:
 	ValueStream(boost::shared_ptr<MDS> mds, streamid id, int _bufsize) :
-		info(*mds->get_info(id)) {
+		info(mds->get_info(id)) {
 		valuestore = boost::shared_ptr<BS>(new BSFile(mds, id));
 		init(_bufsize);
 	}
-	ValueStream(streaminfo _info, int _bufsize) : info(_info) {
+	ValueStream(boost::shared_ptr<streaminfo> _info, int _bufsize) : info(_info) {
 		valuestore = boost::shared_ptr<BS>(new BSFile(_info));
 		init(_bufsize);
 	}
@@ -90,7 +90,7 @@ public:
 	void add_value(valuet val) {
 		++values_in_buffer;
 
-		if (info.encoder == DELTARLE) {
+		if (info->encoder == DELTARLE) {
 			DEBUG("add val=" << val);
 			indext size = buf.size();
 			valuet delta = val - lastvalue;
@@ -149,8 +149,8 @@ public:
 		//TODO: hold mutex?
 		indext lb;
 
-		if (info.sorted) {
-			if (info.encoder == DELTARLE) {
+		if (info->sorted) {
+			if (info->encoder == DELTARLE) {
 				//scan the buffer
 				valuet cur = buf[0];
 				if (val < cur) {
@@ -251,7 +251,7 @@ public:
 			indext start = std::max((indext) 0, dxmin - vs_maxdx);
 			indext end = std::min((indext) buf.size(), (dxmin + npts) - vs_maxdx);
 
-			if (info.encoder == DELTARLE) {
+			if (info->encoder == DELTARLE) {
 				if (end > 0) {
 					valuet cur = buf[0];
 					//i is position in the buffer, decpos is decoded pos

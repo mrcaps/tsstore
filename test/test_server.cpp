@@ -26,15 +26,19 @@ BOOST_AUTO_TEST_CASE( server_test ) {
 	server.add_points(rows);
 
 	//to find out what's in the metadata store
-	/*
 	boost::property_tree::json_parser::write_json(std::cerr,
 			server.get_mds_ref()->to_ptree(),
 			true);
-	*/
 
-	qres s1 = loader.get_stream(1);
-	BOOST_TEST_MESSAGE(s1.ts.size());
-	BOOST_TEST_MESSAGE(s1.vs.size());
+	spairid sid = 1;
+	qres truth = loader.get_stream(sid);
+
+	//check entire stream equality
+
+	BOOST_TEST_MESSAGE("npoints:" << truth.npoints);
+	qres res = server.query(sid, truth.ts[0], truth.ts[truth.npoints-1]);
+
+	bool eq = qres_equal(truth, res);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
