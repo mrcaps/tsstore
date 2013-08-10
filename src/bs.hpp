@@ -40,20 +40,21 @@ public:
 	 */
 	virtual bool add(valuet *pts, indext npts, indext ndecpts=SAME_DEC_PTS) = 0;
 	/**
-	 * Read an exact range of points from the block store
-	 * May require a copy.
+	 * Read and decode range of points from the block store
+	 * Will require a copy if exact=true.
 	 * @param [out] pts data to fill
-	 * @param [in] dxmin where to start, how many ponits
+	 * @param [in] req where to start, how many points
+	 * @param [in] exact should we trim to the requested dxrange or potentially return more points?
 	 * @return true on success
 	 */
-	virtual dxrange read_exact(valuet *pts, dxrange req) = 0;
+	virtual dxrange read(valuet *pts, dxrange req, bool exact=true) = 0;
 	/**
 	 * Read possibly more points (surrounding blocks) from the block store
 	 * @param [in] dxmin index to start reading
 	 * @param [in] npts how many points
 	 * @return some blocks of data.
 	 */
-	virtual read_result read(dxrange req) = 0;
+	virtual read_result read_raw(dxrange req) = 0;
 	/**
 	 * Find the (first) position of the given value
 	 * @param val -(insertion_point) or index

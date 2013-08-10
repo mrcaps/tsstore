@@ -127,7 +127,7 @@ public:
 	 * @param loc_id id to associate with the loc
 	 * @param vwidth value width
 	 */
-	std::vector<pointt> read_stream_fully(
+	std::vector<pointt> read_stream_fully_rows(
 			data_stream_loc loc,
 			streamid loc_id,
 			int twidth=4,
@@ -156,6 +156,42 @@ public:
 		return points;
 	}
 
+	qres read_stream_fully_cols(
+			data_stream_loc loc,
+			streamid loc_id,
+			int twidth=4,
+			int vwidth=4) {
+		boost::filesystem::ifstream ints(loc.tsfile, std::ios_base::in | std::ios_base::binary);
+		boost::filesystem::ifstream invs(loc.vsfile, std::ios_base::in | std::ios_base::binary);
+
+		uintmax_t ints_size = boost::filesystem::file_size(loc.tsfile);
+		uintmax_t invs_size = boost::filesystem::file_size(loc.vsfile);
+
+		if (ints_size * twidth != invs_size * vwidth) {
+			ERROR("timestamp file size " << loc.tsfile.c_str() <<
+					" not the same as value file size " << loc.vsfile.c_str());
+		}
+
+		qres qr;
+		qr.npoints = ints_size / twidth;
+		qr.ts = std::vector<valuet>();
+		qr.vs = std::vector<valuet>();
+		qr.ts.reserve(ints_size / twidth + 1);
+		qr.vs.reserve(invs_size / vwidth + 1);
+		indext dx = 0;
+		while (!ints.eof()) {
+			qr.ts[dx] = read_value(ints, twidth);
+			++dx;
+		}
+		dx = 0;
+		while (!invs.eof()) {
+			qr.vs[dx] = read_value(invs, vwidth);
+			++dx;
+		}
+
+		return qr;
+	}
+
 	/**
 	 * Convert all data to time-ordered <stream, timestamp, value> format
 	 */
@@ -164,13 +200,26 @@ public:
 		streamid id = 0;
 		for (std::vector<data_stream_loc>::iterator sit = streams_begin();
 				sit != streams_end(); sit++) {
-			std::vector<pointt> pts = read_stream_fully(*sit, ++id);
+			std::vector<pointt> pts = read_stream_fully_rows(*sit, ++id);
 			rows.insert(rows.end(), pts.begin(), pts.end());
 		}
 
 		std::sort(rows.begin(), rows.end(), pointt_timestamp_sort);
 
 		return rows;
+	}
+
+	qres get_stream(streamid sid) {
+		streamid id = 0;
+		for (std::vector<data_stream_loc>::iterator sit = streams_begin();
+				sit != streams_end(); sit++) {
+			++id;
+			if (id == sid) {
+				return read_stream_fully_cols(*sit, sid);
+			}
+		}
+
+		ERROR("No stream with id " << sid);
 	}
 };
 

@@ -146,14 +146,14 @@ public:
 		return fs_tellp();
 	}
 
-	read_result read(dxrange req) {
+	read_result read_raw(dxrange req) {
 		read_result rr;
 		rr.blocks = std::vector<value_block>();
 		if (info.encoder == NONE) {
 			value_block vb;
 			vb.data = boost::shared_array<streamt>(new streamt[req.len*SIZEMULT]);
 			vb.encoder = NONE;
-			vb.range = read_exact(reinterpret_cast<valuet*>(vb.data.get()), req);
+			vb.range = read(reinterpret_cast<valuet*>(vb.data.get()), req);
 			vb.data_len = vb.range.len;
 			rr.blocks.push_back(vb);
 		} else {
@@ -263,7 +263,7 @@ public:
 		return ndec;
 	}
 
-	dxrange read_exact(valuet *pts, dxrange req) {
+	dxrange read(valuet *pts, dxrange req, bool exact=true) {
 		if (info.encoder == NONE) {
 			//direct seek if we have no encoder
 			if (req.start > info.maxindex) {
@@ -283,7 +283,7 @@ public:
 			}
 		} else {
 			//need to decode a range
-			read_result rr = read(req);
+			read_result rr = read_raw(req);
 			indext bottom = req.start;
 
 			//copy over relevant points
@@ -312,7 +312,7 @@ public:
 						(it->range.start + it->range.len) - (req.start + req.len));
 				indext declen = it->range.len - before_first - after_last;
 
-				if (before_first > 0 || after_last > 0) {
+				if (exact && (before_first > 0 || after_last > 0)) {
 					//need to decompress a partial block
 					boost::scoped_array<valuet> scratch(
 							new valuet[PAD_SIZE(it->range.len*SIZEMULT)]);
@@ -367,7 +367,7 @@ public:
 				valuet buf[BUFSIZE];
 				for (indext dx = info.minindex; dx < info.maxindex; dx += BUFSIZE) {
 					int npts = std::min(BUFSIZE, info.maxindex - dx);
-					read_exact(buf, dxrange(dx, npts));
+					read(buf, dxrange(dx, npts));
 					//scan the buffer
 					for (int i = 0; i < npts; ++i) {
 						if (buf[i] == pt) {

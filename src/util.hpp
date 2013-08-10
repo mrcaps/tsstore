@@ -33,6 +33,15 @@ typedef struct {
 	valuet v;
 } pointt;
 
+/**
+ * Range query result
+ */
+typedef struct {
+	std::vector<valuet> ts;
+	std::vector<valuet> vs;
+	indext npoints;
+} qres;
+
 struct dxrange {
 	indext start;
 	indext len;

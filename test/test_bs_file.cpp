@@ -34,15 +34,15 @@ BOOST_AUTO_TEST_CASE( basic_test ) {
 	bs.add(pts.get(), npts);
 
 	boost::shared_array<valuet> ptsret = boost::shared_array<valuet>(new valuet[npts]);
-	BOOST_CHECK_EQUAL(npts, bs.read_exact(ptsret.get(), dxrange(0, npts)).len);
+	BOOST_CHECK_EQUAL(npts, bs.read(ptsret.get(), dxrange(0, npts)).len);
 	BOOST_CHECK( memcmp(pts.get(), ptsret.get(),
 			npts*SIZEMULT) == 0 );
 
-	BOOST_CHECK_EQUAL(100, bs.read_exact(ptsret.get(), dxrange(200, 100)).len);
+	BOOST_CHECK_EQUAL(100, bs.read(ptsret.get(), dxrange(200, 100)).len);
 	BOOST_CHECK( memcmp(pts.get()+200, ptsret.get(),
 			100*SIZEMULT) == 0 );
 
-	BOOST_CHECK_EQUAL(50, bs.read_exact(ptsret.get(), dxrange(950, 100)).len);
+	BOOST_CHECK_EQUAL(50, bs.read(ptsret.get(), dxrange(950, 100)).len);
 }
 
 BOOST_AUTO_TEST_CASE( encoders_test ) {

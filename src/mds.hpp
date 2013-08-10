@@ -111,7 +111,7 @@ public:
 	std::map<streamid, boost::shared_ptr<streaminfo> > streaminfos;
 
 	MDS() : lastid(0), streampairs(), streaminfos() {
-		std::cerr << "MDS ctor" << std::endl;
+
 	}
 
 	boost::property_tree::ptree to_ptree() {
@@ -130,7 +130,6 @@ public:
 		boost::filesystem::path basepath("filestore");
 
 		if (streampairs.find(id) == streampairs.end()) {
-			std::cerr << "create new stream id=" << id << std::endl;
 			//make new stream pair
 			streamid tsid = ++lastid;
 			boost::shared_ptr<streaminfo> tsinfo(
@@ -171,10 +170,6 @@ public:
 			ERROR("No streaminfo for streamid=" << id);
 		}
 		return streaminfos.at(id);
-	}
-
-	void print_state() {
-
 	}
 
 	bool update_maxindex(streamid id, indext maxindex) {
