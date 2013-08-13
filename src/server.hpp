@@ -49,7 +49,7 @@ public:
 
 		boost::shared_ptr<ValueStream> tstream = get_stream(pair->ts->id);
 		indext istart = tstream->index(tstart);
-		indext iend = tstream->index(tend);
+		indext iend = std::abs(tstream->index(tend));
 		//TODO: off-by-one details for query?
 		indext npts = iend - istart;
 		qr.npoints = npts;

@@ -40,20 +40,9 @@ BOOST_AUTO_TEST_CASE( server_test ) {
 	qres truth = loader.get_stream(sid);
 
 	//check entire stream equality
-
 	BOOST_TEST_MESSAGE("npoints:" << truth.npoints);
-	qres res = server.query(sid, truth.ts[0], truth.ts[truth.npoints-1] - 1);
+	qres res = server.query(sid, truth.ts[0], truth.ts[truth.npoints-1] + 1);
 
-	print_vector(truth.ts, 1024);
-	print_vector(truth.vs, 1024);
-	std::cerr << std::endl;
-
-	std::cerr << "res:" << std::endl;
-	print_vector(res.ts, 1024);
-	print_vector(res.vs, 1024);
-	std::cerr << std::endl;
-
-	//truth.ts[10] = 4;
 	BOOST_ASSERT(qres_equal(truth, res));
 }
 

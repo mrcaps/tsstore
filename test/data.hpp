@@ -178,6 +178,7 @@ public:
 		qr.npoints = ints_size / twidth;
 		qr.ts = std::vector<valuet>();
 		qr.vs = std::vector<valuet>();
+		std::cerr << "resize to" << ints_size / twidth + 1 << std::endl;
 		qr.ts.resize(ints_size / twidth + 1);
 		qr.vs.resize(invs_size / vwidth + 1);
 		indext dx = 0;

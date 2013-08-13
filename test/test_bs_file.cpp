@@ -85,7 +85,6 @@ BOOST_AUTO_TEST_CASE( encoders_test ) {
 
 		//flush out that entire portion, and make sure we get the right
 		//stuff back.
-		std::cout << "FIRST FLUSH!" << std::endl;
 		vs.flush();
 		BOOST_CHECK_EQUAL(vs.read(ptsret.get(), dxrange(0, ptsadd1)).len, ptsadd1);
 		BOOST_CHECK( memcmp(pts.get(), ptsret.get(), ptsadd1*SIZEMULT) == 0 );
@@ -128,7 +127,6 @@ BOOST_AUTO_TEST_CASE( encoders_test ) {
 		}
 
 		//flush the second chunk and run query again.
-		std::cout << "SECOND FLUSH!" << std::endl;
 		vs.flush();
 
 		BOOST_CHECK_EQUAL(vs.read(ptsret.get(), dxrange(trim_l, rangelen)).len,
