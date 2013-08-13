@@ -126,11 +126,16 @@ public:
 		return pt;
 	}
 
+	static boost::filesystem::path get_basepath() {
+		return boost::filesystem::path("filestore");
+	}
+
 	boost::shared_ptr<streampair> get_info_pair(spairid id) {
-		boost::filesystem::path basepath("filestore");
+		boost::filesystem::path basepath = get_basepath();
 
 		if (streampairs.find(id) == streampairs.end()) {
 			//make new stream pair
+			//TODO: factor location logic out into bs_file, ...
 			streamid tsid = ++lastid;
 			boost::shared_ptr<streaminfo> tsinfo(
 					new streaminfo(tsid,

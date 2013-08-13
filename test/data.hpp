@@ -178,8 +178,8 @@ public:
 		qr.npoints = ints_size / twidth;
 		qr.ts = std::vector<valuet>();
 		qr.vs = std::vector<valuet>();
-		qr.ts.reserve(ints_size / twidth + 1);
-		qr.vs.reserve(invs_size / vwidth + 1);
+		qr.ts.resize(ints_size / twidth + 1);
+		qr.vs.resize(invs_size / vwidth + 1);
 		indext dx = 0;
 		while (!ints.eof()) {
 			valuet val = read_value(ints, twidth);

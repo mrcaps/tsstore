@@ -90,12 +90,23 @@ struct dxrange {
 };
 
 template<typename T>
-inline void print_vector(std::vector<T> vec) {
-	std::cout << "[";
-	for (typename std::vector<T>::iterator it = vec.begin(); it != vec.end(); it++) {
-		std::cout << *it << " ";
+inline void print_vector(std::vector<T> &vec, int elts_max=-1) {
+	std::cerr << "[";
+	if (elts_max >= 0) {
+		int elt = 0;
+		for (typename std::vector<T>::iterator it = vec.begin(); it != vec.end(); it++) {
+			if (++elt < elts_max) {
+				std::cerr << *it << " ";
+			} else {
+				break;
+			}
+		}
+	} else {
+		for (typename std::vector<T>::iterator it = vec.begin(); it != vec.end(); it++) {
+			std::cerr << *it << " ";
+		}
 	}
-	std::cout << "]";
+	std::cerr << "]";
 }
 
 #endif /* UTIL_HPP_ */

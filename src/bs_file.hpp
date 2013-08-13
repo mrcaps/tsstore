@@ -108,7 +108,6 @@ public:
 			fs_write(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
 		} else {
 			if (info->encoder == DELTARLE) {
-				//TODO: variable-width encode?
 				fs_write(reinterpret_cast<streamt*>(pts), SIZEMULT*npts);
 			} else if (info->encoder == ZLIB) {
 				//TODO: use a chunk size that isn't the size of the flush?
@@ -408,7 +407,8 @@ public:
 					vb.range = dxrange(it->dx, dim.first);
 
 					boost::scoped_array<valuet> decvals(new valuet[dim.first]);
-					//indext ndec = decode_block(vb, decvals.get());
+					indext ndec = decode_block(vb, decvals.get());
+					BOOST_ASSERT(ndec == vb.range.len);
 					valuet* lb = std::lower_bound(decvals.get(), decvals.get() + dim.first, pt);
 
 					//we're within the block
@@ -422,6 +422,17 @@ public:
 				return NO_INDEX;
 			} else {
 				//TODO: index unsorted blocks
+			}
+		}
+	}
+
+	static void remove_all_files() {
+		boost::filesystem::directory_iterator end_iter;
+
+		for (boost::filesystem::directory_iterator iter(MDS::get_basepath());
+				iter != end_iter; ++iter) {
+			if (boost::filesystem::is_regular_file(iter->status())) {
+				boost::filesystem::remove(*iter);
 			}
 		}
 	}

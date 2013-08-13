@@ -69,5 +69,4 @@ public:
 	virtual ~BS() {};
 };
 
-
 #endif /* BS_HPP_ */

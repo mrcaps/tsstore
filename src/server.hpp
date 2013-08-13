@@ -50,10 +50,11 @@ public:
 		boost::shared_ptr<ValueStream> tstream = get_stream(pair->ts->id);
 		indext istart = tstream->index(tstart);
 		indext iend = tstream->index(tend);
+		//TODO: off-by-one details for query?
 		indext npts = iend - istart;
 		qr.npoints = npts;
-		qr.ts.reserve(npts);
-		qr.vs.reserve(npts);
+		qr.ts.resize(npts);
+		qr.vs.resize(npts);
 		dxrange req;
 		req.start = istart;
 		req.len = npts;

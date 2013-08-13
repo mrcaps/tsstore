@@ -65,9 +65,9 @@ boost::shared_array<valuet> get_test_data(int npoints, testdatatype type) {
 }
 
 void print_data(valuet *dta, int npoints) {
-	std::cout << "[ ";
+	std::cerr << "[ ";
 	for (int i = 0; i < npoints; ++i) {
-		std::cout << dta[i] << " ";
+		std::cerr << dta[i] << " ";
 	}
-	std::cout << "]";
+	std::cerr << "]";
 }

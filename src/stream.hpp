@@ -129,7 +129,7 @@ public:
 			buf.push_back(val);
 		}
 
-		if (buf.full()) {
+		if (buf.size() > buf.capacity() - 8) {
 			flush();
 		}
 	}
@@ -214,7 +214,7 @@ public:
 	 * 	TODO: consider different flush sizes
 	 */
 	bool flush() {
-		boost::mutex::scoped_lock lock(mutex);
+		//boost::mutex::scoped_lock lock(mutex);
 
 		bool success = true;
 
@@ -232,7 +232,7 @@ public:
 		buf.clear();
 		values_in_buffer = 0;
 
-		lock.unlock();
+		//lock.unlock();
 
 		return success;
 	}
@@ -248,8 +248,8 @@ public:
 
 		if (dxmin + npts > vs_maxdx) {
 			//read vals from buffer
-			indext start = std::max((indext) 0, dxmin - vs_maxdx);
-			indext end = std::min((indext) buf.size(), (dxmin + npts) - vs_maxdx);
+			indext start = std::max(static_cast<indext>(0), dxmin - vs_maxdx);
+			indext end = std::min(static_cast<indext>(buf.size()), (dxmin + npts) - vs_maxdx);
 
 			if (info->encoder == DELTARLE) {
 				if (end > 0) {
