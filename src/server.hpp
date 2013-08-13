@@ -18,11 +18,16 @@
 
 class TSServer {
 private:
+	int bufsize;
 	boost::shared_ptr<MDS> mds;
 	std::map<streamid, boost::shared_ptr<ValueStream> > streams;
 
 public:
-	TSServer() : mds(new MDS()) {
+	/**
+	 * @param _bufsize buffer size
+	 */
+	TSServer(int _bufsize) : bufsize(_bufsize), mds(new MDS()) {
+
 	}
 
 	boost::shared_ptr<MDS> get_mds_ref() {
@@ -48,7 +53,7 @@ public:
 		qr.vs = std::vector<valuet>();
 
 		boost::shared_ptr<ValueStream> tstream = get_stream(pair->ts->id);
-		indext istart = tstream->index(tstart);
+		indext istart = std::abs(tstream->index(tstart));
 		indext iend = std::abs(tstream->index(tend));
 		//TODO: off-by-one details for query?
 		indext npts = iend - istart;
@@ -69,7 +74,7 @@ public:
 	boost::shared_ptr<ValueStream> get_stream(streamid id) {
 		if (streams.find(id) == streams.end()) {
 			//instantiate stream
-			streams[id] = boost::shared_ptr<ValueStream>(new ValueStream(mds, id, 1024));
+			streams[id] = boost::shared_ptr<ValueStream>(new ValueStream(mds, id, bufsize));
 		}
 
 		return streams.at(id);
