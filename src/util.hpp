@@ -11,6 +11,7 @@
 #include <inttypes.h>
 
 #include <boost/filesystem.hpp>
+//#include <boost/asio/ip/host_name.hpp>
 
 #undef DISALLOW_EVIL_CONSTRUCTORS
 #define DISALLOW_EVIL_CONSTRUCTORS(TypeName) \
@@ -79,6 +80,23 @@ inline bool qres_equal(qres qr1, qres qr2) {
 	}
 
 	return true;
+}
+
+inline qres qres_subset(qres qr, int lo, int hi) {
+	qres qr2;
+	qr2.npoints = hi - lo;
+	qr2.ts = std::vector<valuet>();
+	qr2.ts.resize(qr2.npoints);
+	std::copy(qr.ts.begin() + lo, qr.ts.begin() + hi, qr2.ts.begin());
+	qr2.vs = std::vector<valuet>();
+	qr2.vs.resize(qr2.npoints);
+	std::copy(qr.vs.begin() + lo, qr.vs.begin() + hi, qr2.vs.begin());
+	return qr2;
+}
+
+inline std::string get_hostname() {
+	return "mrvaio";
+	//return boost::asio::ip::host_name();
 }
 
 struct dxrange {

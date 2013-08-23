@@ -7,5 +7,7 @@ Makefile
 filestore/*.stream
 bin/*.dll
 bin/*.exe
+*.exe
+*.dll
 *.tmp
 *.stackdump
