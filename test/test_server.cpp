@@ -12,6 +12,7 @@
 #include "../src/util.hpp"
 #include "../src/server.hpp"
 #include "data.hpp"
+#include "common.hpp"
 
 #include "../src/timer.hpp"
 
@@ -74,6 +75,8 @@ BOOST_AUTO_TEST_CASE( server_test ) {
 }
 
 BOOST_AUTO_TEST_CASE( server_insert_speed ) {
+	LONG_TEST
+
 	int bufsizes[] = {
 		24, 32, 64, 128
 		//24, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768

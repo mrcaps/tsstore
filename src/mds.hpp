@@ -74,10 +74,10 @@ struct streaminfo {
 struct streampair {
 	spairid id;
 	boost::shared_ptr<streaminfo> ts;
-	boost::shared_ptr<streaminfo> vs;
+	std::vector<boost::shared_ptr<streaminfo> > vs;
 
 	streampair(spairid _id, boost::shared_ptr<streaminfo> _ts,
-			boost::shared_ptr<streaminfo> _vs) :
+			std::vector<boost::shared_ptr<streaminfo> > _vs) :
 			id(_id), ts(_ts), vs(_vs) {
 
 	}
@@ -86,7 +86,11 @@ struct streampair {
 		boost::property_tree::ptree pt;
 		pt.put("id", id);
 		pt.put_child("ts", ts->to_ptree());
-		pt.put_child("vs", vs->to_ptree());
+		for (int i = 0; i < vs.size(); ++i) {
+			pt.put_child(
+				(boost::format("vs%d") % i).str().c_str(),
+				vs[i]->to_ptree());
+		}
 		return pt;
 	}
 };
@@ -130,7 +134,7 @@ public:
 		return boost::filesystem::path("filestore");
 	}
 
-	boost::shared_ptr<streampair> get_info_pair(spairid id) {
+	boost::shared_ptr<streampair> get_info_pair(spairid id, int nvs) {
 		boost::filesystem::path basepath = get_basepath();
 
 		if (streampairs.find(id) == streampairs.end()) {
@@ -148,20 +152,24 @@ public:
 							));
 			streaminfos[tsid] = tsinfo;
 
-			streamid vsid = ++lastid;
-			boost::shared_ptr<streaminfo> vsinfo(
-					new streaminfo(vsid,
-							(basepath / boost::filesystem::path((boost::format("%1%.stream") % lastid).str())).string(),
-							0,
-							0,
-							NONE,
-							false,
-							std::vector<dxpair>()
-							));
-			streaminfos[vsid] = vsinfo;
+			std::vector<boost::shared_ptr<streaminfo> > vsinfos;
+			for (int nvdx = 0; nvdx < nvs; ++nvdx) {
+				streamid vsid = ++lastid;
+				boost::shared_ptr<streaminfo> vsinfo(
+						new streaminfo(vsid,
+								(basepath / boost::filesystem::path((boost::format("%1%.stream") % lastid).str())).string(),
+								0,
+								0,
+								NONE,
+								false,
+								std::vector<dxpair>()
+								));
+				streaminfos[vsid] = vsinfo;
+				vsinfos.push_back(vsinfo);
+			}
 
 			streampairs[id] = boost::shared_ptr<streampair>(
-					new streampair(id, tsinfo, vsinfo));
+					new streampair(id, tsinfo, vsinfos));
 		}
 
 		return streampairs.at(id);

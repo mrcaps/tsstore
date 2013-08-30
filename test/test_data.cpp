@@ -39,4 +39,10 @@ BOOST_AUTO_TEST_CASE( to_rows_test ) {
 	}
 }
 
+BOOST_AUTO_TEST_CASE( csv_loader_test ) {
+	CSVDataLoader loader("testdata/csv/out-csv-52.csv");
+
+	loader.to_rows();
+}
+
 BOOST_AUTO_TEST_SUITE_END()

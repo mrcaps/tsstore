@@ -128,6 +128,7 @@ public:
 		info->index.push_back(dxpair(info->maxindex, prevtail, pts[0]));
 
 		fs.flush();
+		fs.sync();
 		info->maxindex += ndecpts;
 
 		if (mds) {

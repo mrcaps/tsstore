@@ -11,6 +11,7 @@
 #include <boost/shared_array.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/tokenizer.hpp>
 
 #include <string>
 #include <map>
@@ -44,6 +45,73 @@ typedef struct {
 inline bool pointt_timestamp_sort(pointt a, pointt b) {
 	return a.t < b.t;
 }
+
+//http://stackoverflow.com/questions/1894886/parsing-a-comma-delimited-stdstring
+struct ToValueT {
+	int operator()(std::string const &str) {
+		return static_cast<valuet>(atoi(str.c_str()));
+	}
+};
+
+class CSVDataLoader {
+private:
+	DISALLOW_EVIL_CONSTRUCTORS(CSVDataLoader);
+
+	boost::filesystem::path src;
+
+	void init(boost::filesystem::path src) {
+		this->src = src;
+	}
+
+public:
+	CSVDataLoader(std::string csvloc) {
+		init(csvloc);
+	}
+
+	std::vector<mpointt> to_rows() {
+		std::vector<mpointt> rows;
+
+		unsigned int MAX_LINE = 1000;
+		char line[MAX_LINE];
+
+		int max_cols = 0;
+
+		boost::filesystem::ifstream cif(src);
+
+		while (cif.good()) {
+			cif.getline(line, MAX_LINE);
+			if (!cif.good()) {
+				break;
+			}
+			std::string strline(line);
+			typedef boost::tokenizer< boost::char_separator<char> > Tokenizer;
+			Tokenizer tok(strline);
+			std::vector<valuet> ints;
+
+			mpointt t;
+			t.stream = 0;
+
+			int dx = 0;
+			//std::transform(tok.begin(), tok.end(), std::back_inserter(ints), ToValueT());
+			for (Tokenizer::iterator it = tok.begin(); it != tok.end(); ++it) {
+				valuet v = static_cast<valuet>(atoi((*it).c_str()));
+				if (dx == 0) {
+					t.t = v;
+				} else {
+					ints.push_back(v);
+				}
+			}
+
+			t.v = ints;
+
+			rows.push_back(t);
+		}
+
+		cif.close();
+
+		return rows;
+	}
+};
 
 class ColumnDataLoader {
 private:

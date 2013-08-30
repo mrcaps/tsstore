@@ -58,6 +58,12 @@ typedef struct {
 	valuet v;
 } pointt;
 
+typedef struct {
+	spairid stream;
+	valuet t;
+	std::vector<valuet> v;
+} mpointt;
+
 /**
  * Range query result
  */

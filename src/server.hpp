@@ -36,17 +36,23 @@ public:
 
 	void add_points(std::vector<pointt> rows) {
 		for (std::vector<pointt>::iterator pit = rows.begin(); pit != rows.end(); pit++) {
-			boost::shared_ptr<streampair> pair = mds->get_info_pair(pit->stream);
+			boost::shared_ptr<streampair> pair = mds->get_info_pair(pit->stream, 1);
 			boost::shared_ptr<ValueStream> tsvs = get_stream(pair->ts->id);
-			boost::shared_ptr<ValueStream> vsvs = get_stream(pair->vs->id);
+			boost::shared_ptr<ValueStream> vsvs = get_stream(pair->vs[0]->id);
 
 			tsvs->add_value(pit->t);
 			vsvs->add_value(pit->v);
 		}
 	}
 
+	void add_mpoints(std::vector<mpointt> rows) {
+		for (std::vector<mpointt>::iterator pit = rows.begin(); pit != rows.end(); pit++) {
+
+		}
+	}
+
 	qres query(spairid sid, valuet tstart, valuet tend) {
-		boost::shared_ptr<streampair> pair = mds->get_info_pair(sid);
+		boost::shared_ptr<streampair> pair = mds->get_info_pair(sid, 1);
 		//find index range
 		qres qr;
 		qr.ts = std::vector<valuet>();
@@ -65,7 +71,7 @@ public:
 		req.len = npts;
 		tstream->read(&(*qr.ts.begin()), req);
 
-		boost::shared_ptr<ValueStream> vstream = get_stream(pair->vs->id);
+		boost::shared_ptr<ValueStream> vstream = get_stream(pair->vs[0]->id);
 		vstream->read(&(*qr.vs.begin()), req);
 
 		return qr;
